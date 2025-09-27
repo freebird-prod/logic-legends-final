@@ -1,17 +1,76 @@
-import React, { useState } from 'react';
-import { Search, AlertCircle, Phone, Mail, MessageSquare, Bot } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, AlertCircle, Phone, Mail, MessageSquare, Bot, Loader2, RefreshCw } from 'lucide-react';
 import { Ticket } from '../../types';
+import { TicketService } from '../../services/ticketService';
 
 interface TicketListProps {
     title: string;
-    tickets: Ticket[];
+    tickets?: Ticket[]; // Made optional since we'll fetch from Firebase
     showActions?: boolean;
+    autoFetch?: boolean; // New prop to control whether to fetch automatically
+    onViewTicket?: (ticket: Ticket) => void; // Callback for viewing a ticket
+    onResolveTicket?: (ticket: Ticket) => void; // Callback for resolving a ticket
 }
 
-export const TicketList: React.FC<TicketListProps> = ({ title, tickets, showActions = true }) => {
+export const TicketList: React.FC<TicketListProps> = ({
+    title,
+    tickets: propTickets = [],
+    showActions = true,
+    autoFetch = true,
+    onViewTicket,
+    onResolveTicket
+}) => {
+    const [tickets, setTickets] = useState<Ticket[]>(propTickets);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [resolvingTicketId, setResolvingTicketId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPriority, setFilterPriority] = useState<string>('all');
     const [filterStatus, setFilterStatus] = useState<string>('all');
+
+    // Fetch tickets from Firebase
+    const fetchTickets = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const fetchedTickets = await TicketService.getRecentTickets(50);
+            setTickets(fetchedTickets);
+        } catch (err) {
+            setError('Failed to load tickets. Please try again.');
+            console.error('Error fetching tickets:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Default resolve handler
+    const handleResolveTicket = async (ticket: Ticket) => {
+        setResolvingTicketId(ticket.id);
+        try {
+            await TicketService.updateTicket(ticket.id, { status: 'resolved' });
+            // Refresh the tickets list
+            await fetchTickets();
+        } catch (err) {
+            console.error('Error resolving ticket:', err);
+            setError('Failed to resolve ticket. Please try again.');
+        } finally {
+            setResolvingTicketId(null);
+        }
+    };
+
+    // Default view handler (placeholder)
+    const handleViewTicket = (ticket: Ticket) => {
+        console.log('Viewing ticket:', ticket);
+        // This can be implemented to open a modal or navigate to ticket details
+    };
+
+    useEffect(() => {
+        if (autoFetch) {
+            fetchTickets();
+        } else {
+            setTickets(propTickets);
+        }
+    }, [autoFetch, propTickets]);
 
     const filteredTickets = tickets.filter(ticket => {
         const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,8 +129,23 @@ export const TicketList: React.FC<TicketListProps> = ({ title, tickets, showActi
                     style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')" }}
                 ></div>
                 <div className="relative z-10 p-6 text-white">
-                    <h2 className="text-2xl font-bold">{title}</h2>
-                    <p className="text-sm opacity-90 mt-1">Manage and track all support tickets</p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold">{title}</h2>
+                            <p className="text-sm opacity-90 mt-1">Manage and track all support tickets</p>
+                        </div>
+                        {autoFetch && (
+                            <button
+                                onClick={fetchTickets}
+                                disabled={loading}
+                                className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+                                title="Refresh tickets"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                <span className="text-sm">Refresh</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -116,80 +190,112 @@ export const TicketList: React.FC<TicketListProps> = ({ title, tickets, showActi
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sentiment</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                {showActions && (
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredTickets.map((ticket) => (
-                                <tr key={ticket.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4">
-                                        <div>
-                                            <div className="text-sm font-medium text-gray-900">#{ticket.id}</div>
-                                            <div className="text-sm text-gray-600 max-w-xs truncate">{ticket.title}</div>
-                                            <div className="text-xs text-gray-500 mt-1">{ticket.category}</div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-sm text-gray-900">{ticket.customerInfo.name}</div>
-                                        <div className="text-sm text-gray-600">{ticket.customerInfo.email}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-md border ${getPriorityColor(ticket.priority)}`}>
-                                            {ticket.priority}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-md ${getStatusColor(ticket.status)}`}>
-                                            {ticket.status.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center space-x-2">
-                                            {getSourceIcon(ticket.source)}
-                                            <span className="text-sm text-gray-600 capitalize">{ticket.source}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`text-sm font-medium ${getSentimentColor(ticket.sentiment)}`}>
-                                            {ticket.sentiment}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">
-                                        {new Date(ticket.createdAt).toLocaleDateString()}
-                                        <div className="text-xs text-gray-500">
-                                            {new Date(ticket.createdAt).toLocaleTimeString()}
-                                        </div>
-                                    </td>
+                    {loading ? (
+                        <div className="text-center py-12">
+                            <Loader2 className="h-8 w-8 text-blue-600 mx-auto mb-4 animate-spin" />
+                            <p className="text-gray-600">Loading tickets...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-12">
+                            <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+                            <p className="text-red-600 mb-4">{error}</p>
+                            <button
+                                onClick={fetchTickets}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sentiment</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                                     {showActions && (
-                                        <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
-                                                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                                    View
-                                                </button>
-                                                <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                                                    Resolve
-                                                </button>
-                                            </div>
-                                        </td>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     )}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredTickets.map((ticket) => (
+                                    <tr key={ticket.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <div className="text-sm font-medium text-gray-900">#{ticket.id.slice(-8)}</div>
+                                                <div className="text-sm text-gray-600 max-w-xs truncate">{ticket.title}</div>
+                                                <div className="text-xs text-gray-500 mt-1">{ticket.category}</div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-gray-900">{ticket.customerInfo.name}</div>
+                                            <div className="text-sm text-gray-600">{ticket.customerInfo.email}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-md border ${getPriorityColor(ticket.priority)}`}>
+                                                {ticket.priority}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-md ${getStatusColor(ticket.status)}`}>
+                                                {ticket.status.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center space-x-2">
+                                                {getSourceIcon(ticket.source)}
+                                                <span className="text-sm text-gray-600 capitalize">{ticket.source}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`text-sm font-medium ${getSentimentColor(ticket.sentiment)}`}>
+                                                {ticket.sentiment}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                            {new Date(ticket.createdAt).toLocaleDateString()}
+                                            <div className="text-xs text-gray-500">
+                                                {new Date(ticket.createdAt).toLocaleTimeString()}
+                                            </div>
+                                        </td>
+                                        {showActions && (
+                                            <td className="px-6 py-4">
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => (onViewTicket || handleViewTicket)(ticket)}
+                                                        className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    <button
+                                                        onClick={() => (onResolveTicket || handleResolveTicket)(ticket)}
+                                                        className="px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                                                        disabled={ticket.status === 'resolved' || ticket.status === 'closed' || resolvingTicketId === ticket.id}
+                                                    >
+                                                        {resolvingTicketId === ticket.id ? (
+                                                            <>
+                                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                                <span>Resolving...</span>
+                                                            </>
+                                                        ) : (
+                                                            <span>{ticket.status === 'resolved' || ticket.status === 'closed' ? 'Resolved' : 'Resolve'}</span>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
 
-                    {filteredTickets.length === 0 && (
+                    {!loading && !error && filteredTickets.length === 0 && (
                         <div className="text-center py-12">
                             <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                             <p className="text-gray-600">No tickets match your current filters.</p>
