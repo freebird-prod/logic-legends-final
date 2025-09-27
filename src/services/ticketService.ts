@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, doc, getDoc, getDocs, query, where, orderBy, limit, Timestamp, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDoc, getDocs, query, where, orderBy, limit, Timestamp, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebaseConfig';
 import { Ticket, ProactiveAlert, ChatSession } from '../types';
 
@@ -259,5 +259,18 @@ export class TicketService {
         });
 
         return unsubscribe;
+    }
+
+    /**
+     * Delete a chat session
+     */
+    static async deleteChatSession(chatId: string): Promise<void> {
+        try {
+            const docRef = doc(db, 'chatSessions', chatId);
+            await deleteDoc(docRef);
+        } catch (error) {
+            console.error('Error deleting chat session:', error);
+            throw new Error('Failed to delete chat session');
+        }
     }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, ThumbsUp, ThumbsDown, MessageSquare, Plus } from 'lucide-react';
+import { Send, Bot, User, ThumbsUp, ThumbsDown, MessageSquare, Plus, Trash } from 'lucide-react';
 import { TicketService } from '../../services/ticketService';
 import { openRouterService } from '../../services/openRouterService';
 import { ChatMessage, ChatSession } from '../../types';
@@ -71,6 +71,17 @@ export const ChatInterface: React.FC = () => {
         setShowHistory(false);
       }
     });
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await TicketService.deleteChatSession(chatId);
+      if (currentChatId === chatId) {
+        startNewChat();
+      }
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+    }
   };
 
   useEffect(() => {
@@ -194,16 +205,32 @@ export const ChatInterface: React.FC = () => {
           {chatHistory.map((chat) => (
             <div
               key={chat.id}
-              onClick={() => loadChat(chat.id)}
-              className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${currentChatId === chat.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+              className={`p-3 border-b border-gray-100 hover:bg-gray-50 ${currentChatId === chat.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                 }`}
             >
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {chat.title || 'New Chat'}
-              </p>
-              <p className="text-xs text-gray-500">
-                {new Date(chat.updatedAt).toLocaleDateString()}
-              </p>
+              <div className="flex items-center justify-between">
+                <div
+                  onClick={() => loadChat(chat.id)}
+                  className="flex-1 cursor-pointer"
+                >
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {chat.title || 'New Chat'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(chat.updatedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteChat(chat.id);
+                  }}
+                  className="p-1 text-red-500 hover:text-red-700"
+                  title="Delete Chat"
+                >
+                  <Trash className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
