@@ -3,12 +3,14 @@ import { Send, CheckCircle, Bot, User, ThumbsUp, ThumbsDown, Sparkles, FileText,
 import { Ticket, ChatMessage } from '../../types';
 import { openRouterService, ChatClassification, OpenRouterMessage } from '../../services/openRouterService';
 import { TicketService } from '../../services/ticketService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface CustomerPortalProps {
   onSubmitTicket: (ticket: Ticket) => void;
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }) => {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('general');
@@ -268,6 +270,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
+    // Check if user is authenticated
+    if (!user) {
+      alert('Please log in to submit a support ticket.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -284,9 +292,9 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
         assignedTo: classification.priority === 'priority' ? 'Call Team' :
           classification.priority === 'moderate' ? 'Email Team' : 'AI Chatbot',
         customerInfo: {
-          name: 'Customer User', // This would come from auth context
-          email: 'customer@email.com',
-          phone: '+1-555-0000'
+          name: user?.name || 'Anonymous User',
+          email: user?.email || 'no-email@example.com',
+          phone: user?.phone || '+1-555-0000'
         },
         wasteCategory: classification.wasteCategory,
         carbonFootprint: Math.random() * 0.5, // Simulated carbon footprint
@@ -321,6 +329,28 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
       alert('Failed to submit ticket. Please try again.');
     }
   };
+
+  if (!user) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <User className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-yellow-900 mb-2">Authentication Required</h2>
+            <p className="text-yellow-700 mb-4">
+              Please log in to access the customer support portal and submit support tickets.
+            </p>
+            <button
+              onClick={() => window.location.href = '/login'}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -544,6 +574,17 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            {/* User Info Display */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <User className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h3 className="text-sm font-medium text-blue-900">Submitting as:</h3>
+                  <p className="text-sm text-blue-700 font-medium">{user.name}</p>
+                  <p className="text-xs text-blue-600">{user.email}</p>
+                </div>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
