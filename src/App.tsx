@@ -107,9 +107,9 @@ const NavigationSidebar: React.FC = () => {
   return (
     <div className="hidden lg:flex lg:w-1/4 xl:w-1/5 relative overflow-hidden bg-white border-r border-gray-200">
       {/* Navigation Content */}
-      <div className="relative z-10 flex flex-col h-full w-full">
+      <div className="relative flex flex-col h-full w-full">
         {/* Logo/Brand */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-4 flex items-center border-b border-gray-200">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,21 +149,21 @@ const NavigationSidebar: React.FC = () => {
 
         {/* User Info */}
         <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center mb-5 space-x-3 p-3.5 rounded-xl bg-gray-50">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-medium text-white">
+          <div className="flex items-center mb-3 space-x-3 p-3 rounded-xl bg-gray-50">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-medium text-white">
               {(user?.name?.charAt(0)?.toUpperCase()) || (user?.email?.charAt(0)?.toUpperCase()) || 'U'}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+            <div className="flex-col">
+              <p className="text-base font-medium text-gray-900 truncate">
                 {user?.name || user?.email?.split('@')[0] || 'User'}
               </p>
-              <p className="text-xs text-gray-600 capitalize">{user?.role?.replace('_', ' ')}</p>
+              <p className="text-sm text-gray-600 capitalize">{user?.role?.replace('_', ' ')}</p>
             </div>
           </div>
           <button
             onClick={logout}
             disabled={isLoggingOut}
-            className="w-full mt-3 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mb-[7rem] text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
           >
             {isLoggingOut ? (
               <>
@@ -171,10 +171,10 @@ const NavigationSidebar: React.FC = () => {
                 <span>Signing Out...</span>
               </>
             ) : (
-              <>
+              <div className='px-3 py-2 bg-red-600 flex items-center gap-2.5 text-white rounded-xl w-full justify-center font-semibold text-base'>
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
-              </>
+              </div>
             )}
           </button>
         </div>
