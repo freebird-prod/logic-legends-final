@@ -8,7 +8,6 @@ import {
   Settings,
   Library,
   Bot,
-  LogOut,
   AlertTriangle,
   TrendingUp,
   Users
@@ -21,7 +20,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const getNavItems = () => {
     const commonItems = [
@@ -72,7 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const navItems = getNavItems();
 
   return (
-    <nav className="bg-gray-900 text-white w-64 min-h-screen flex flex-col relative overflow-hidden">
+    <nav className="bg-gray-900 text-white w-64 min-h-screen flex flex-col relative overflow-y-auto">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-10"
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')" }}
@@ -83,18 +82,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           <div>
             <h1 className="text-xl font-bold">AI Support</h1>
             <p className="text-xs text-gray-400 capitalize">{user?.role?.replace('_', ' ')} Portal</p>
-          </div>
-        </div>
-
-        <div className="bg-gray-800 rounded-lg p-3 mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center text-sm font-medium">
-              {user?.name.charAt(0)}
-            </div>
-            <div>
-              <p className="text-sm font-medium">{user?.name}</p>
-              <p className="text-xs text-gray-400">{user?.email}</p>
-            </div>
           </div>
         </div>
       </div>
@@ -108,8 +95,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 <button
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTab === item.id
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }`}
                 >
                   <IconComponent className="h-5 w-5" />
@@ -119,16 +106,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             );
           })}
         </ul>
-      </div>
-
-      <div className="p-4">
-        <button
-          onClick={logout}
-          className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
-        >
-          <LogOut className="h-5 w-5" />
-          <span className="text-sm font-medium">Sign Out</span>
-        </button>
       </div>
     </nav>
   );

@@ -22,15 +22,28 @@ import {
   Bot,
   AlertTriangle,
   TrendingUp,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react';
 import { mockTickets } from './data/mockTickets';
 import { Ticket } from './types';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
+
+  // Show loading while determining auth state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -41,7 +54,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Navigation Sidebar Component
 const NavigationSidebar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
 
   const getNavItems = () => {
     const commonItems = [
@@ -116,7 +129,7 @@ const NavigationSidebar: React.FC = () => {
                   key={item.id}
                   to={item.path}
                   className={({ isActive }) =>
-                    `w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${isActive
+                    `w-full flex items-center space-x-2.5 px-4 py-3 rounded-xl text-left transition-all duration-200 ${isActive
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                     }`
@@ -132,20 +145,33 @@ const NavigationSidebar: React.FC = () => {
 
         {/* User Info */}
         <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3 p-3 rounded-xl bg-gray-50">
+          <div className="flex items-center mb-5 space-x-3 p-3.5 rounded-xl bg-gray-50">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-medium text-white">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              {(user?.name?.charAt(0)?.toUpperCase()) || (user?.email?.charAt(0)?.toUpperCase()) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {user?.name || user?.email?.split('@')[0] || 'User'}
+              </p>
               <p className="text-xs text-gray-600 capitalize">{user?.role?.replace('_', ' ')}</p>
             </div>
           </div>
           <button
             onClick={logout}
-            className="w-full mt-3 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+            disabled={isLoggingOut}
+            className="w-full mt-3 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sign Out
+            {isLoggingOut ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                <span>Signing Out...</span>
+              </>
+            ) : (
+              <>
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -158,7 +184,19 @@ const RoleBasedRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles: string[]
 }> = ({ children, allowedRoles }) => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  // Show loading while determining auth state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user || !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
@@ -168,7 +206,7 @@ const RoleBasedRoute: React.FC<{
 };
 
 const AppContent: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
   const [tickets, setTickets] = useState(mockTickets);
 
   const handleSubmitTicket = (newTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -202,9 +240,17 @@ const AppContent: React.FC = () => {
             <h1 className="text-xl font-semibold text-gray-900">Customer Support Portal</h1>
             <button
               onClick={logout}
-              className="text-gray-600 hover:text-gray-900"
+              disabled={isLoggingOut}
+              className="text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              Sign Out
+              {isLoggingOut ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  <span>Signing Out...</span>
+                </>
+              ) : (
+                <span>Sign Out</span>
+              )}
             </button>
           </div>
         </div>
@@ -240,11 +286,16 @@ const AppContent: React.FC = () => {
             </div>
             <button
               onClick={logout}
-              className="text-gray-600 hover:text-gray-900 p-2"
+              disabled={isLoggingOut}
+              className="text-gray-600 hover:text-gray-900 p-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              {isLoggingOut ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              )}
             </button>
           </div>
         </div>

@@ -8,9 +8,10 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, role: User['role']) => Promise<boolean>;
   signup: (email: string, password: string, role: User['role'], name: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
   isAuthenticating: boolean;
+  isLoggingOut: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +22,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -121,18 +123,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
+    if (isLoggingOut) return; // Prevent multiple logout attempts
+
+    setIsLoggingOut(true);
     try {
+      // Show loading toast
+      const loadingToast = toast.loading('Signing out...', {
+        duration: 2000,
+      });
+
       await signOut(auth);
-      toast.success('Successfully signed out!');
+
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success('Successfully signed out!', {
+        duration: 3000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+          borderRadius: '8px',
+        },
+      });
     } catch (error) {
       console.error('Logout error:', error);
-      toast.error('Failed to sign out. Please try again.');
+
+      // Show error toast
+      toast.error('Failed to sign out. Please try again.', {
+        duration: 4000,
+        style: {
+          background: '#EF4444',
+          color: '#fff',
+          borderRadius: '8px',
+        },
+      });
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading, isAuthenticating }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isLoading, isAuthenticating, isLoggingOut }}>
       {children}
     </AuthContext.Provider>
   );
