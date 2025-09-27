@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { DashboardOverview } from './components/Dashboard/DashboardOverview';
 import { ChatInterface } from './components/Chatbot/ChatInterface';
+
 //@ts-ignore
 import { TicketList } from './components/TicketManagement/TicketList';
 import { WasteAnalytics } from './components/Analytics/WasteAnalytics';
