@@ -48,7 +48,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
     "Technical support needed"
   ];
 
-  const classifyTicket = (title: string, description: string, category: string) => {
+  const classifyTicket = (title: string, description: string) => {
     const text = (title + ' ' + description).toLowerCase();
 
     // Priority classification
@@ -87,66 +87,66 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
     return { priority, sentiment, wasteCategory };
   };
 
-  const classifyMessage = (message: string): { priority: string; category: string; sentiment: string } => {
-    const text = message.toLowerCase();
+  // const classifyMessage = (message: string): { priority: string; category: string; sentiment: string } => {
+  //   const text = message.toLowerCase();
 
-    let priority = 'normal';
-    if (text.includes('urgent') || text.includes('emergency') || text.includes('critical') || text.includes('down') || text.includes('not working')) {
-      priority = 'priority';
-    } else if (text.includes('issue') || text.includes('problem') || text.includes('error') || text.includes('help')) {
-      priority = 'moderate';
-    }
+  //   let priority = 'normal';
+  //   if (text.includes('urgent') || text.includes('emergency') || text.includes('critical') || text.includes('down') || text.includes('not working')) {
+  //     priority = 'priority';
+  //   } else if (text.includes('issue') || text.includes('problem') || text.includes('error') || text.includes('help')) {
+  //     priority = 'moderate';
+  //   }
 
-    let category = 'general';
-    if (text.includes('billing') || text.includes('payment') || text.includes('charge')) {
-      category = 'billing';
-    } else if (text.includes('password') || text.includes('login') || text.includes('account')) {
-      category = 'account';
-    } else if (text.includes('bug') || text.includes('error') || text.includes('not working')) {
-      category = 'technical';
-    } else if (text.includes('shipping') || text.includes('delivery') || text.includes('package')) {
-      category = 'shipping';
-    }
+  //   let category = 'general';
+  //   if (text.includes('billing') || text.includes('payment') || text.includes('charge')) {
+  //     category = 'billing';
+  //   } else if (text.includes('password') || text.includes('login') || text.includes('account')) {
+  //     category = 'account';
+  //   } else if (text.includes('bug') || text.includes('error') || text.includes('not working')) {
+  //     category = 'technical';
+  //   } else if (text.includes('shipping') || text.includes('delivery') || text.includes('package')) {
+  //     category = 'shipping';
+  //   }
 
-    let sentiment = 'neutral';
-    if (text.includes('frustrated') || text.includes('angry') || text.includes('terrible') || text.includes('worst')) {
-      sentiment = 'frustrated';
-    } else if (text.includes('thank') || text.includes('great') || text.includes('excellent')) {
-      sentiment = 'positive';
-    }
+  //   let sentiment = 'neutral';
+  //   if (text.includes('frustrated') || text.includes('angry') || text.includes('terrible') || text.includes('worst')) {
+  //     sentiment = 'frustrated';
+  //   } else if (text.includes('thank') || text.includes('great') || text.includes('excellent')) {
+  //     sentiment = 'positive';
+  //   }
 
-    return { priority, category, sentiment };
-  };
+  //   return { priority, category, sentiment };
+  // };
 
-  const generateResponse = (userMessage: string, classification: { priority: string; category: string; sentiment: string }): string => {
-    const { priority, category, sentiment } = classification;
+  // const generateResponse = (userMessage: string, classification: { priority: string; category: string; sentiment: string }): string => {
+  //   const { priority, category, sentiment } = classification;
 
-    if (sentiment === 'frustrated') {
-      return "I understand your frustration, and I'm here to help resolve this issue as quickly as possible. Let me connect you with a senior support specialist who can provide immediate assistance. Would you like me to create a priority ticket for you?";
-    }
+  //   if (sentiment === 'frustrated') {
+  //     return "I understand your frustration, and I'm here to help resolve this issue as quickly as possible. Let me connect you with a senior support specialist who can provide immediate assistance. Would you like me to create a priority ticket for you?";
+  //   }
 
-    if (priority === 'priority') {
-      return `I've classified this as a high-priority ${category} issue. I'm immediately escalating this to our specialized team. You should receive a call within the next 5 minutes. Would you also like me to pre-fill a support ticket with this information?`;
-    }
+  //   if (priority === 'priority') {
+  //     return `I've classified this as a high-priority ${category} issue. I'm immediately escalating this to our specialized team. You should receive a call within the next 5 minutes. Would you also like me to pre-fill a support ticket with this information?`;
+  //   }
 
-    if (category === 'billing') {
-      return "I can help you with billing-related questions. For account charges, refunds, or payment method updates, I'll need to verify some information. Let me connect you with our billing specialist who can securely handle your account details. Would you like me to create a billing support ticket?";
-    }
+  //   if (category === 'billing') {
+  //     return "I can help you with billing-related questions. For account charges, refunds, or payment method updates, I'll need to verify some information. Let me connect you with our billing specialist who can securely handle your account details. Would you like me to create a billing support ticket?";
+  //   }
 
-    if (category === 'account') {
-      return "For account access issues, I recommend first trying our password reset tool. If that doesn't work, I can create a secure ticket for our account recovery team. Would you like me to: 1) Send you the password reset link, or 2) Create an account recovery ticket?";
-    }
+  //   if (category === 'account') {
+  //     return "For account access issues, I recommend first trying our password reset tool. If that doesn't work, I can create a secure ticket for our account recovery team. Would you like me to: 1) Send you the password reset link, or 2) Create an account recovery ticket?";
+  //   }
 
-    if (category === 'technical') {
-      return "I've identified this as a technical issue. Let me gather some information to help diagnose the problem. What device and browser are you using? When did you first notice this issue? I can also pre-fill a technical support ticket if needed.";
-    }
+  //   if (category === 'technical') {
+  //     return "I've identified this as a technical issue. Let me gather some information to help diagnose the problem. What device and browser are you using? When did you first notice this issue? I can also pre-fill a technical support ticket if needed.";
+  //   }
 
-    if (category === 'shipping') {
-      return "I can help with shipping and delivery issues. Please provide your order number if you have it. I can track your package status and create a shipping inquiry ticket if needed. What specific shipping issue are you experiencing?";
-    }
+  //   if (category === 'shipping') {
+  //     return "I can help with shipping and delivery issues. Please provide your order number if you have it. I can track your package status and create a shipping inquiry ticket if needed. What specific shipping issue are you experiencing?";
+  //   }
 
-    return "Thank you for contacting us! I'm analyzing your request to provide the best assistance. Can you provide a bit more detail about what specific help you need today? I can also help you submit a formal support ticket if needed.";
-  };
+  //   return "Thank you for contacting us! I'm analyzing your request to provide the best assistance. Can you provide a bit more detail about what specific help you need today? I can also help you submit a formal support ticket if needed.";
+  // };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -269,7 +269,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
 
     setIsSubmitting(true);
 
-    const classification = classifyTicket(title, description, category);
+    const classification = classifyTicket(title, description);
 
     const newTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'> = {
       title,

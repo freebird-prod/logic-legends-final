@@ -66,7 +66,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
       ];
     }
 
-    // Customer role is handled in App.tsx, so this shouldn't be reached
     return commonItems;
   };
 

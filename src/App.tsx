@@ -117,7 +117,7 @@ const NavigationSidebar: React.FC = () => {
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">AI Support</h1>
+              <h1 className="text-base font-bold text-gray-900">Flip Kare AI</h1>
               <p className="text-xs text-gray-600 capitalize">{user?.role?.replace('_', ' ')} Portal</p>
             </div>
           </div>
