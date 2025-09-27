@@ -15,22 +15,15 @@ export const TeamManagement: React.FC = () => {
     role: 'caller' as 'caller' | 'email_team',
   });
 
-  // Fetch team members from Firestore
-  const fetchTeamMembers = async () => {
-    setLoading(true);
-    try {
-      const members = await TicketService.getTeamMembers();
-      setTeamMembers(members);
-    } catch (err) {
-      toast.error('Failed to load team members. Please try again.');
-      console.error('Error fetching team members:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Set up real-time listener for team members
   useEffect(() => {
-    fetchTeamMembers();
+    setLoading(true);
+    const unsubscribe = TicketService.listenToTeamMembers((members) => {
+      setTeamMembers(members);
+      setLoading(false);
+    });
+
+    return unsubscribe;
   }, []);
 
   const getStatusColor = (status: string) => {
