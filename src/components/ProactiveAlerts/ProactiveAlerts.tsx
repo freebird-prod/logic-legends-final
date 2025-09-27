@@ -1,59 +1,41 @@
-import React from 'react';
-import { AlertTriangle, TrendingUp, Server, Users, Clock, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, TrendingUp, Server, Users, Clock, CheckCircle, Activity } from 'lucide-react';
+import { ProactiveAlert } from '../../types';
+import { TicketService } from '../../services/ticketService';
+import toast from 'react-hot-toast';
 
 export const ProactiveAlerts: React.FC = () => {
-  const activeAlerts = [
-    {
-      id: '1',
-      type: 'performance',
-      title: 'High Server Load Detected',
-      description: 'Server response times increased by 40% in the last 15 minutes',
-      severity: 'warning',
-      affectedUsers: 450,
-      action: 'Auto-scaling initiated',
-      time: '5 minutes ago',
-      icon: Server,
-    },
-    {
-      id: '2',
-      type: 'quality',
-      title: 'Product Return Rate Spike',
-      description: 'Return requests for Product #1247 increased by 200%',
-      severity: 'critical',
-      affectedUsers: 23,
-      action: 'Quality team notified',
-      time: '12 minutes ago',
-      icon: TrendingUp,
-    },
-    {
-      id: '3',
-      type: 'user_behavior',
-      title: 'Unusual Login Failure Pattern',
-      description: 'Multiple failed login attempts from new users',
-      severity: 'info',
-      affectedUsers: 78,
-      action: 'Password reset emails sent',
-      time: '18 minutes ago',
-      icon: Users,
-    },
-  ];
+  const [alerts, setAlerts] = useState<ProactiveAlert[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const resolvedAlerts = [
-    {
-      id: '4',
-      title: 'Payment Gateway Timeout',
-      description: 'Payment processing delays resolved',
-      resolvedAt: '1 hour ago',
-      affectedUsers: 156,
-    },
-    {
-      id: '5',
-      title: 'Email Service Disruption',
-      description: 'Email delivery service restored',
-      resolvedAt: '2 hours ago',
-      affectedUsers: 89,
-    },
-  ];
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const fetchedAlerts = await TicketService.getProactiveAlerts(20);
+        setAlerts(fetchedAlerts);
+      } catch (error) {
+        console.error('Error fetching proactive alerts:', error);
+        toast.error('Failed to load proactive alerts');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAlerts();
+  }, []);
+
+  const activeAlerts = alerts.filter(alert => !alert.resolvedAt);
+  const resolvedAlerts = alerts.filter(alert => alert.resolvedAt);
+
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case 'performance': return Server;
+      case 'quality': return TrendingUp;
+      case 'user_behavior': return Users;
+      case 'system': return Activity;
+      default: return AlertTriangle;
+    }
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -63,6 +45,30 @@ export const ProactiveAlerts: React.FC = () => {
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    return `${diffDays} days ago`;
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Proactive Issue Detection</h2>
+          <p className="text-gray-600">Loading alerts...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -80,7 +86,7 @@ export const ProactiveAlerts: React.FC = () => {
               <AlertTriangle className="h-6 w-6 text-red-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">3</div>
+              <div className="text-2xl font-bold text-gray-900">{activeAlerts.length}</div>
               <div className="text-sm text-gray-600">Active Alerts</div>
             </div>
           </div>
@@ -92,8 +98,8 @@ export const ProactiveAlerts: React.FC = () => {
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">12</div>
-              <div className="text-sm text-gray-600">Issues Prevented</div>
+              <div className="text-2xl font-bold text-gray-900">{resolvedAlerts.length}</div>
+              <div className="text-sm text-gray-600">Resolved Alerts</div>
             </div>
           </div>
         </div>
@@ -104,8 +110,10 @@ export const ProactiveAlerts: React.FC = () => {
               <Clock className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">2.3 min</div>
-              <div className="text-sm text-gray-600">Avg Detection Time</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {alerts.length > 0 ? formatTimeAgo(alerts[0].createdAt) : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600">Latest Alert</div>
             </div>
           </div>
         </div>
@@ -116,7 +124,7 @@ export const ProactiveAlerts: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Alerts</h3>
           <div className="space-y-4">
             {activeAlerts.map((alert) => {
-              const IconComponent = alert.icon;
+              const IconComponent = getIconForType(alert.type);
               return (
                 <div key={alert.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-2">
@@ -129,7 +137,7 @@ export const ProactiveAlerts: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500">{alert.time}</span>
+                    <span className="text-xs text-gray-500">{formatTimeAgo(alert.createdAt)}</span>
                   </div>
 
                   <p className="text-sm text-gray-600 mb-3">{alert.description}</p>
@@ -159,14 +167,14 @@ export const ProactiveAlerts: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Recently Resolved</h3>
             <div className="space-y-3">
-              {resolvedAlerts.map((alert) => (
+              {resolvedAlerts.slice(0, 5).map((alert) => (
                 <div key={alert.id} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-gray-900">{alert.title}</h4>
                     <p className="text-xs text-gray-600">{alert.description}</p>
                     <div className="flex justify-between items-center mt-1">
-                      <span className="text-xs text-gray-500">{alert.resolvedAt}</span>
+                      <span className="text-xs text-gray-500">{alert.resolvedAt ? formatTimeAgo(alert.resolvedAt) : 'Recently'}</span>
                       <span className="text-xs text-gray-500">{alert.affectedUsers} users</span>
                     </div>
                   </div>
@@ -180,15 +188,19 @@ export const ProactiveAlerts: React.FC = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Tickets Prevented</span>
-                <span className="text-lg font-bold text-green-600">847</span>
+                <span className="text-lg font-bold text-green-600">
+                  {alerts.reduce((sum, alert) => sum + (alert.preventedTickets || 0), 0)}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Cost Savings</span>
-                <span className="text-lg font-bold text-green-600">₹28,50,000</span>
+                <span className="text-sm text-gray-600">Total Affected Users</span>
+                <span className="text-lg font-bold text-green-600">
+                  {alerts.reduce((sum, alert) => sum + alert.affectedUsers, 0)}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Customer Satisfaction</span>
-                <span className="text-lg font-bold text-green-600">+12%</span>
+                <span className="text-sm text-gray-600">Active Monitoring</span>
+                <span className="text-lg font-bold text-green-600">{activeAlerts.length}</span>
               </div>
             </div>
           </div>

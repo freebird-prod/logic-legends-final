@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, NavLink } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
@@ -14,6 +14,7 @@ import { TeamManagement } from './components/TeamManagement/TeamManagement';
 import { EmailTemplates } from './components/EmailTemplates/EmailTemplates';
 import { PriorityCalls } from './components/PriorityCalls/PriorityCalls';
 import { Escalations } from './components/Escalations/Escalations';
+import { EmailQueue } from './components/EmailQueue';
 import {
   Home,
   MessageCircle,
@@ -29,7 +30,6 @@ import {
   LogOut
 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
-import { mockTickets } from './data/mockTickets';
 import { Ticket } from './types';
 import { TicketService } from './services/ticketService';
 
@@ -220,49 +220,12 @@ const RoleBasedRoute: React.FC<{
 
 const AppContent: React.FC = () => {
   const { user, logout, isLoggingOut } = useAuth();
-  const [tickets, setTickets] = useState(mockTickets);
-  const [hasSeededData, setHasSeededData] = useState(false);
-
-  // Seed mock data to Firestore on first load
-  useEffect(() => {
-    const seedMockData = async () => {
-      if (hasSeededData) return;
-
-      try {
-        // Try to seed mock tickets to Firestore
-        // We'll use a flag in localStorage to avoid seeding multiple times
-        const seededFlag = localStorage.getItem('mockDataSeeded');
-        if (!seededFlag) {
-          console.log('Seeding mock tickets to Firestore...');
-          for (const ticket of mockTickets) {
-            try {
-              await TicketService.seedTicket(ticket);
-              console.log(`Seeded ticket: ${ticket.title}`);
-            } catch (error) {
-              console.error(`Error seeding ticket ${ticket.title}:`, error);
-            }
-          }
-          localStorage.setItem('mockDataSeeded', 'true');
-          console.log('Mock tickets seeding completed');
-        }
-        setHasSeededData(true);
-      } catch (error) {
-        console.error('Error in seeding process:', error);
-        setHasSeededData(true); // Don't retry on error
-      }
-    };
-
-    seedMockData();
-  }, [hasSeededData]);
 
   const handleSubmitTicket = async (newTicket: Ticket) => {
     try {
       // Save to Firestore first
       const ticketId = await TicketService.createTicket(newTicket);
       const ticketWithId = { ...newTicket, id: ticketId };
-
-      // Add the ticket to local state for immediate UI updates
-      setTickets(prev => [ticketWithId, ...prev]);
 
       // Simulate real-time notification to teams
       console.log('New ticket submitted:', ticketWithId);
@@ -277,8 +240,7 @@ const AppContent: React.FC = () => {
       }
     } catch (error) {
       console.error('Error creating ticket:', error);
-      // Still add to local state even if Firestore fails, for better UX
-      setTickets(prev => [newTicket, ...prev]);
+      // Ticket creation failed
     }
   };
 
@@ -414,9 +376,14 @@ const AppContent: React.FC = () => {
                   <EmailTemplates />
                 </RoleBasedRoute>
               } />
+              <Route path="/email-queue" element={
+                <RoleBasedRoute allowedRoles={['email_team']}>
+                  <EmailQueue />
+                </RoleBasedRoute>
+              } />
 
               {/* Common Routes - Accessible to all authenticated non-customer users */}
-              <Route path="/library" element={<TicketList title="Ticket Library" tickets={tickets} />} />
+              <Route path="/library" element={<TicketList title="Ticket Library" />} />
 
               {/* Fallback - redirect to dashboard for any unmatched routes */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

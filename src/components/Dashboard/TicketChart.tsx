@@ -1,17 +1,39 @@
 import React from 'react';
+import { Ticket } from '../../types';
 
-export const TicketChart: React.FC = () => {
-  const data = [
-    { day: 'Mon', normal: 45, moderate: 23, priority: 8 },
-    { day: 'Tue', normal: 52, moderate: 18, priority: 12 },
-    { day: 'Wed', normal: 38, moderate: 28, priority: 6 },
-    { day: 'Thu', normal: 61, moderate: 15, priority: 9 },
-    { day: 'Fri', normal: 48, moderate: 32, priority: 14 },
-    { day: 'Sat', normal: 29, moderate: 12, priority: 4 },
-    { day: 'Sun', normal: 33, moderate: 16, priority: 7 },
-  ];
+interface TicketChartProps {
+  tickets: Ticket[];
+}
 
-  const maxValue = Math.max(...data.map(d => d.normal + d.moderate + d.priority));
+export const TicketChart: React.FC<TicketChartProps> = ({ tickets }) => {
+  // Generate data for the last 7 days
+  const getLast7Days = () => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+    }
+    return days;
+  };
+
+  const days = getLast7Days();
+
+  const data = days.map(day => {
+    const dayTickets = tickets.filter(ticket => {
+      const ticketDate = new Date(ticket.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
+      return ticketDate === day;
+    });
+
+    return {
+      day,
+      normal: dayTickets.filter(t => t.priority === 'normal').length,
+      moderate: dayTickets.filter(t => t.priority === 'moderate').length,
+      priority: dayTickets.filter(t => t.priority === 'priority').length,
+    };
+  });
+
+  const maxValue = Math.max(...data.map(d => d.normal + d.moderate + d.priority)) || 1;
 
   return (
     <div className="space-y-4">

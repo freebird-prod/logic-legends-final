@@ -426,6 +426,55 @@ export class TicketService {
     }
 
     /**
+     * Get email tickets (open and in_progress status)
+     */
+    static async getEmailTickets(limitCount: number = 50): Promise<Ticket[]> {
+        try {
+            const q = query(
+                collection(db, this.COLLECTION_NAME),
+                where('source', '==', 'email'),
+                where('status', 'in', ['open', 'in_progress']),
+                orderBy('updatedAt', 'desc'),
+                limit(limitCount)
+            );
+
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Ticket));
+        } catch (error) {
+            console.error('Error getting email tickets:', error);
+            throw new Error('Failed to get email tickets');
+        }
+    }
+
+    /**
+     * Listen to email tickets only (open and in_progress status)
+     */
+    static listenToEmailTickets(callback: (tickets: Ticket[]) => void): () => void {
+        const q = query(
+            collection(db, this.COLLECTION_NAME),
+            where('source', '==', 'email'),
+            where('status', 'in', ['open', 'in_progress']),
+            orderBy('updatedAt', 'desc'),
+            limit(100)
+        );
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const tickets = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Ticket));
+            callback(tickets);
+        }, (error) => {
+            console.error('Error listening to email tickets:', error);
+        });
+
+        return unsubscribe;
+    }
+
+    /**
      * Listen to real-time ticket updates
      */
     static listenToTickets(callback: (tickets: Ticket[]) => void): () => void {

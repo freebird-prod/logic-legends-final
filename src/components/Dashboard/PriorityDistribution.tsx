@@ -1,10 +1,32 @@
 import React from 'react';
+import { Ticket } from '../../types';
 
-export const PriorityDistribution: React.FC = () => {
+interface PriorityDistributionProps {
+  tickets: Ticket[];
+}
+
+export const PriorityDistribution: React.FC<PriorityDistributionProps> = ({ tickets }) => {
+  const totalTickets = tickets.length;
+  const normalCount = tickets.filter(t => t.priority === 'normal').length;
+  const moderateCount = tickets.filter(t => t.priority === 'moderate').length;
+  const priorityCount = tickets.filter(t => t.priority === 'priority').length;
+
   const data = [
-    { label: 'Normal', value: 68, color: 'bg-green-500' },
-    { label: 'Moderate', value: 24, color: 'bg-orange-500' },
-    { label: 'Priority', value: 8, color: 'bg-red-500' },
+    {
+      label: 'Normal',
+      value: totalTickets > 0 ? Math.round((normalCount / totalTickets) * 100) : 0,
+      color: 'bg-green-500'
+    },
+    {
+      label: 'Moderate',
+      value: totalTickets > 0 ? Math.round((moderateCount / totalTickets) * 100) : 0,
+      color: 'bg-orange-500'
+    },
+    {
+      label: 'Priority',
+      value: totalTickets > 0 ? Math.round((priorityCount / totalTickets) * 100) : 0,
+      color: 'bg-red-500'
+    },
   ];
 
   return (
@@ -23,7 +45,7 @@ export const PriorityDistribution: React.FC = () => {
           </div>
         </div>
       ))}
-      
+
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
         <h4 className="text-sm font-medium text-gray-700 mb-2">AI Classification Accuracy</h4>
         <div className="text-2xl font-bold text-green-600">96.8%</div>

@@ -1,21 +1,86 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingDown, Package, RefreshCw, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 import { MetricCard } from '../Dashboard/MetricCard';
+import { TicketService } from '../../services/ticketService';
+import { Ticket } from '../../types';
 
 export const WasteAnalytics: React.FC = () => {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const recentTickets = await TicketService.getRecentTickets(200);
+        setTickets(recentTickets);
+      } catch (error) {
+        console.error('Error fetching tickets:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTickets();
+  }, []);
+
+  // Calculate waste metrics from real data
+  const wasteTickets = tickets.filter(ticket => ticket.wasteCategory);
+  const productDefectTickets = wasteTickets.filter(ticket => ticket.wasteCategory === 'product_defect').length;
+  const shippingErrorTickets = wasteTickets.filter(ticket => ticket.wasteCategory === 'shipping_error').length;
+  const userConfusionTickets = wasteTickets.filter(ticket => ticket.wasteCategory === 'user_confusion').length;
+  const processIssueTickets = wasteTickets.filter(ticket => ticket.wasteCategory === 'process_issue').length;
+
+  // Calculate potential savings (assuming average cost per waste ticket)
+  const avgCostPerWasteTicket = 10000; // INR
+  const totalWasteReduction = wasteTickets.length * avgCostPerWasteTicket;
+
   const wasteMetrics = [
-    { title: 'Product Defect Tickets', value: '89', change: '-12% from last month', changeType: 'positive' as const, icon: Package, color: 'red' as const },
-    { title: 'Return/Replacement Costs', value: '₹2,85,000', change: '₹53,000 saved', changeType: 'positive' as const, icon: RefreshCw, color: 'orange' as const },
-    { title: 'Shipping Error Tickets', value: '34', change: '-6 fewer errors', changeType: 'positive' as const, icon: AlertTriangle, color: 'orange' as const },
-    { title: 'Total Waste Reduction', value: '₹8,50,000', change: '₹1,40,000 this month', changeType: 'positive' as const, icon: DollarSign, color: 'green' as const },
+    { title: 'Product Defect Tickets', value: productDefectTickets.toString(), change: `${Math.round((productDefectTickets / Math.max(wasteTickets.length, 1)) * 100)}% of waste tickets`, changeType: 'neutral' as const, icon: Package, color: 'red' as const },
+    { title: 'Shipping Error Tickets', value: shippingErrorTickets.toString(), change: `${Math.round((shippingErrorTickets / Math.max(wasteTickets.length, 1)) * 100)}% of waste tickets`, changeType: 'neutral' as const, icon: RefreshCw, color: 'orange' as const },
+    { title: 'User Confusion Tickets', value: userConfusionTickets.toString(), change: `${Math.round((userConfusionTickets / Math.max(wasteTickets.length, 1)) * 100)}% of waste tickets`, changeType: 'neutral' as const, icon: AlertTriangle, color: 'orange' as const },
+    { title: 'Total Waste Reduction', value: `₹${totalWasteReduction.toLocaleString()}`, change: `${wasteTickets.length} waste tickets identified`, changeType: 'positive' as const, icon: DollarSign, color: 'green' as const },
   ];
+
+  const wasteCategories = [
+    {
+      category: 'Product Defects',
+      amount: `₹${(productDefectTickets * avgCostPerWasteTicket).toLocaleString()}`,
+      percentage: wasteTickets.length > 0 ? Math.round((productDefectTickets / wasteTickets.length) * 100) : 0,
+      color: 'bg-red-500'
+    },
+    {
+      category: 'Shipping Errors',
+      amount: `₹${(shippingErrorTickets * avgCostPerWasteTicket).toLocaleString()}`,
+      percentage: wasteTickets.length > 0 ? Math.round((shippingErrorTickets / wasteTickets.length) * 100) : 0,
+      color: 'bg-orange-500'
+    },
+    {
+      category: 'User Confusion',
+      amount: `₹${(userConfusionTickets * avgCostPerWasteTicket).toLocaleString()}`,
+      percentage: wasteTickets.length > 0 ? Math.round((userConfusionTickets / wasteTickets.length) * 100) : 0,
+      color: 'bg-orange-500'
+    },
+    {
+      category: 'Process Issues',
+      amount: `₹${(processIssueTickets * avgCostPerWasteTicket).toLocaleString()}`,
+      percentage: wasteTickets.length > 0 ? Math.round((processIssueTickets / wasteTickets.length) * 100) : 0,
+      color: 'bg-blue-500'
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Waste Reduction Analytics</h2>
         <p className="text-gray-600">
-          Track and reduce operational waste through AI-powered insights.
+          Track and reduce operational waste through AI-powered insights from {tickets.length} recent tickets.
         </p>
       </div>
 
@@ -29,12 +94,7 @@ export const WasteAnalytics: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Waste Categories Breakdown</h3>
           <div className="space-y-4">
-            {[
-              { category: 'Product Defects', amount: '₹3,50,000', percentage: 42, color: 'bg-red-500' },
-              { category: 'Shipping Errors', amount: '₹2,10,000', percentage: 25, color: 'bg-orange-500' },
-              { category: 'User Confusion', amount: '₹1,90,000', percentage: 23, color: 'bg-yellow-500' },
-              { category: 'Process Issues', amount: '₹1,00,000', percentage: 10, color: 'bg-blue-500' },
-            ].map((item, index) => (
+            {wasteCategories.map((item, index) => (
               <div key={index}>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-700">{item.category}</span>
@@ -86,10 +146,10 @@ export const WasteAnalytics: React.FC = () => {
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-sm font-medium text-green-600">Save {opportunity.impact}</span>
                       <span className={`text-xs px-2 py-1 rounded-md ${opportunity.status === 'in-progress'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : opportunity.status === 'planned'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : opportunity.status === 'planned'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-800'
                         }`}>
                         {opportunity.status.replace('-', ' ')}
                       </span>

@@ -23,6 +23,7 @@ export const TicketList: React.FC<TicketListProps> = ({
 }) => {
     const [tickets, setTickets] = useState<Ticket[]>(propTickets);
     const [loading, setLoading] = useState(false);
+    const [hasFetched, setHasFetched] = useState(false);
     const [resolvingTicketId, setResolvingTicketId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -30,10 +31,13 @@ export const TicketList: React.FC<TicketListProps> = ({
 
     // Fetch tickets from Firebase
     const fetchTickets = async () => {
+        if (loading || hasFetched) return; // Prevent multiple fetches
+
         setLoading(true);
         try {
             const fetchedTickets = await TicketService.getRecentTickets(50);
             setTickets(fetchedTickets);
+            setHasFetched(true);
         } catch (err) {
             toast.error('Failed to load tickets. Please try again.');
             console.error('Error fetching tickets:', err);
@@ -48,8 +52,7 @@ export const TicketList: React.FC<TicketListProps> = ({
         try {
             await TicketService.updateTicket(ticket.id, { status: 'resolved' });
             toast.success('Ticket resolved successfully!');
-            // Refresh the tickets list
-            await fetchTickets();
+            // The real-time listener will automatically update the tickets list
         } catch (err) {
             console.error('Error resolving ticket:', err);
             toast.error('Failed to resolve ticket. Please try again.');
@@ -64,11 +67,18 @@ export const TicketList: React.FC<TicketListProps> = ({
         // This can be implemented to open a modal or navigate to ticket details
     };
 
+    // Refresh tickets (force re-fetch)
+    const refreshTickets = async () => {
+        setHasFetched(false);
+        await fetchTickets();
+    };
+
     useEffect(() => {
-        if (autoFetch) {
+        if (autoFetch && !hasFetched) {
             fetchTickets();
-        } else {
+        } else if (!autoFetch) {
             setTickets(propTickets);
+            setHasFetched(false); // Reset fetch state when using prop tickets
         }
     }, [autoFetch, propTickets]);
 
@@ -136,7 +146,7 @@ export const TicketList: React.FC<TicketListProps> = ({
                         </div>
                         {autoFetch && (
                             <button
-                                onClick={fetchTickets}
+                                onClick={refreshTickets}
                                 disabled={loading}
                                 className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
                                 title="Refresh tickets"
@@ -284,10 +294,22 @@ export const TicketList: React.FC<TicketListProps> = ({
                         </table>
                     )}
 
-                    {!loading && filteredTickets.length === 0 && (
+                    {!loading && filteredTickets.length === 0 && hasFetched && (
                         <div className="text-center py-12">
                             <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                             <p className="text-gray-600">No tickets match your current filters.</p>
+                        </div>
+                    )}
+
+                    {!loading && !hasFetched && autoFetch && (
+                        <div className="text-center py-12">
+                            <div className="text-gray-600 mb-4">Click refresh to load tickets</div>
+                            <button
+                                onClick={fetchTickets}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Load Tickets
+                            </button>
                         </div>
                     )}
                 </div>
