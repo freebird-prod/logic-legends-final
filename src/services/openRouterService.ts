@@ -12,7 +12,7 @@ interface OpenRouterResponse {
 }
 
 interface ChatClassification {
-    priority: 'normal' | 'moderate' | 'priority';
+    priority: 'normal' | 'priority';
     category: string;
     sentiment: 'positive' | 'neutral' | 'frustrated' | 'angry';
     needsHuman: boolean;
@@ -32,7 +32,7 @@ class OpenRouterService {
         return `You are an intelligent customer support AI assistant for Logic Legends, a tech support platform. Your role is to:
 
 1. Provide helpful, accurate, and empathetic customer support
-2. Classify issues by priority (normal, moderate, priority) and category
+2. Classify issues by priority (normal, priority) and category
 3. Detect customer sentiment and respond appropriately
 4. Determine when human intervention is needed
 5. Suggest practical solutions and next steps
@@ -50,7 +50,7 @@ CRITICAL: You MUST respond with a valid JSON object in this exact format:
 {
   "message": "Your response to the customer",
   "classification": {
-    "priority": "normal|moderate|priority",
+    "priority": "normal|priority",
     "category": "general|technical|billing|account|shipping|product_quality",
     "sentiment": "positive|neutral|frustrated|angry",
     "needsHuman": true/false,
@@ -168,13 +168,12 @@ Current conversation context: Customer support chat session.`;
     private getFallbackClassification(message: string): ChatClassification {
         const text = message.toLowerCase();
 
-        let priority: 'normal' | 'moderate' | 'priority' = 'normal';
+        let priority: 'normal' | 'priority' = 'normal';
         if (text.includes('urgent') || text.includes('emergency') || text.includes('critical') ||
-            text.includes('down') || text.includes('not working') || text.includes('broken')) {
-            priority = 'priority';
-        } else if (text.includes('issue') || text.includes('problem') || text.includes('error') ||
+            text.includes('down') || text.includes('not working') || text.includes('broken') ||
+            text.includes('issue') || text.includes('problem') || text.includes('error') ||
             text.includes('help') || text.includes('billing') || text.includes('payment')) {
-            priority = 'moderate';
+            priority = 'priority';
         }
 
         let category = 'general';

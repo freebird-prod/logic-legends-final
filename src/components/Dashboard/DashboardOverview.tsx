@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  MessageCircle,
   Phone,
   Mail,
   TrendingUp,
@@ -33,16 +32,15 @@ export const DashboardOverview: React.FC = () => {
   const getMetrics = () => {
     const totalTickets = tickets.length;
     const priorityCount = tickets.filter(t => t.priority === 'priority').length;
-    const moderateCount = tickets.filter(t => t.priority === 'moderate').length;
     const normalCount = tickets.filter(t => t.priority === 'normal').length;
     const today = new Date().toDateString();
     const priorityToday = tickets.filter(t => t.priority === 'priority' && new Date(t.createdAt).toDateString() === today).length;
 
     if (user?.role === 'admin') {
       return [
-        { title: 'Total Tickets', value: totalTickets.toString(), change: '+12% from last week', changeType: 'positive' as const, icon: MessageCircle, color: 'blue' as const },
+        { title: 'Total Tickets', value: totalTickets.toString(), change: '+12% from last week', changeType: 'positive' as const, icon: Users, color: 'blue' as const },
         { title: 'Priority Calls', value: priorityCount.toString(), change: '-8% from yesterday', changeType: 'positive' as const, icon: Phone, color: 'red' as const },
-        { title: 'Email Queue', value: moderateCount.toString(), change: '+5% from last hour', changeType: 'neutral' as const, icon: Mail, color: 'orange' as const },
+        { title: 'Email Queue', value: normalCount.toString(), change: '+5% from last hour', changeType: 'neutral' as const, icon: Mail, color: 'orange' as const },
         { title: 'Avg Response Time', value: '2.3 min', change: '-15 sec faster', changeType: 'positive' as const, icon: Clock, color: 'purple' as const },
         { title: 'Customer Satisfaction', value: '4.8/5', change: '+0.2 from last month', changeType: 'positive' as const, icon: TrendingUp, color: 'green' as const },
         { title: 'Active Agents', value: '23', change: '5 on break', changeType: 'neutral' as const, icon: Users, color: 'blue' as const },
@@ -53,7 +51,7 @@ export const DashboardOverview: React.FC = () => {
     if (user?.role === 'caller') {
       return [
         { title: 'Priority Calls Today', value: priorityToday.toString(), change: '3 pending', changeType: 'neutral' as const, icon: Phone, color: 'red' as const },
-        { title: 'Escalations Handled', value: moderateCount.toString(), change: '+2 from yesterday', changeType: 'neutral' as const, icon: AlertTriangle, color: 'orange' as const },
+        { title: 'Escalations Handled', value: normalCount.toString(), change: '+2 from yesterday', changeType: 'neutral' as const, icon: AlertTriangle, color: 'orange' as const },
         { title: 'Avg Call Duration', value: '4.2 min', change: '-30 sec shorter', changeType: 'positive' as const, icon: Clock, color: 'purple' as const },
       ];
     }
@@ -61,7 +59,6 @@ export const DashboardOverview: React.FC = () => {
     if (user?.role === 'email_team') {
       return [
         { title: 'Emails Sent Today', value: normalCount.toString(), change: '+8 from yesterday', changeType: 'positive' as const, icon: Mail, color: 'blue' as const },
-        { title: 'Moderate Tickets', value: moderateCount.toString(), change: '12 in queue', changeType: 'neutral' as const, icon: MessageCircle, color: 'orange' as const },
         { title: 'Avg Response Time', value: '1.8 min', change: '-22 sec faster', changeType: 'positive' as const, icon: Clock, color: 'purple' as const },
         { title: 'Email Success Rate', value: '98.5%', change: 'Delivery rate', changeType: 'positive' as const, icon: CheckCircle, color: 'green' as const },
       ];
@@ -120,7 +117,7 @@ export const DashboardOverview: React.FC = () => {
             <div className="space-y-3">
               {tickets.slice(0, 5).map((ticket, index) => {
                 const timeAgo = Math.floor((Date.now() - new Date(ticket.createdAt).getTime()) / (1000 * 60)) + ' min ago';
-                const color = ticket.priority === 'priority' ? 'red' : ticket.priority === 'moderate' ? 'orange' : 'blue';
+                const color = ticket.priority === 'priority' ? 'red' : 'blue';
                 return (
                   <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className={`h-2 w-2 rounded-full bg-${color}-500`}></div>

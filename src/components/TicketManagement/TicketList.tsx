@@ -96,7 +96,6 @@ export const TicketList: React.FC<TicketListProps> = ({
     const getPriorityColor = (priority: string) => {
         switch (priority) {
             case 'priority': return 'bg-red-100 text-red-800 border-red-200';
-            case 'moderate': return 'bg-orange-100 text-orange-800 border-orange-200';
             case 'normal': return 'bg-green-100 text-green-800 border-green-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
@@ -180,7 +179,6 @@ export const TicketList: React.FC<TicketListProps> = ({
                     >
                         <option value="all">All Priorities</option>
                         <option value="priority">Priority</option>
-                        <option value="moderate">Moderate</option>
                         <option value="normal">Normal</option>
                     </select>
 

@@ -64,7 +64,7 @@ export const Login: React.FC = () => {
         navigate('/priority-calls');
         break;
       case 'email_team':
-        navigate('/email-queue');
+        navigate('/templates');
         break;
       case 'customer':
         navigate('/');

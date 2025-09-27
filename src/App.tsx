@@ -15,12 +15,9 @@ import { TeamManagement } from './components/TeamManagement/TeamManagement';
 import { EmailTemplates } from './components/EmailTemplates/EmailTemplates';
 import { PriorityCalls } from './components/PriorityCalls/PriorityCalls';
 import { Escalations } from './components/Escalations/Escalations';
-import { EmailQueue } from './components/EmailQueue';
 import {
   Home,
-  MessageCircle,
   Phone,
-  Mail,
   BarChart3,
   Settings,
   Library,
@@ -97,8 +94,6 @@ const NavigationSidebar: React.FC = () => {
     if (user?.role === 'email_team') {
       return [
         ...commonItems.slice(0, 1),
-        { id: 'email-queue', label: 'Email Queue', icon: Mail, path: '/email-queue' },
-        { id: 'moderate-tickets', label: 'Moderate Tickets', icon: MessageCircle, path: '/moderate-tickets' },
         { id: 'templates', label: 'Templates', icon: Settings, path: '/templates' },
         ...commonItems.slice(1),
       ];
@@ -234,10 +229,8 @@ const AppContent: React.FC = () => {
       // Auto-route based on priority
       if (newTicket.priority === 'priority') {
         console.log('Priority ticket routed to Call Team');
-      } else if (newTicket.priority === 'moderate') {
-        console.log('Moderate ticket routed to Email Team');
       } else {
-        console.log('Normal ticket routed to AI Chatbot');
+        console.log('Ticket routed to AI Chatbot');
       }
     } catch (error) {
       console.error('Error creating ticket:', error);
@@ -375,11 +368,6 @@ const AppContent: React.FC = () => {
               <Route path="/templates" element={
                 <RoleBasedRoute allowedRoles={['email_team']}>
                   <EmailTemplates />
-                </RoleBasedRoute>
-              } />
-              <Route path="/email-queue" element={
-                <RoleBasedRoute allowedRoles={['email_team']}>
-                  <EmailQueue />
                 </RoleBasedRoute>
               } />
 

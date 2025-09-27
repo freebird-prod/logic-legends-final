@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import {
   Home,
-  MessageCircle,
   Phone,
-  Mail,
   BarChart3,
   Settings,
   Library,
@@ -35,9 +33,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
       return [
         ...commonItems.slice(0, 1),
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-        { id: 'tickets', label: 'All Tickets', icon: MessageCircle },
+        { id: 'tickets', label: 'All Tickets', icon: Library },
         { id: 'calls', label: 'Call Management', icon: Phone },
-        { id: 'emails', label: 'Email Queue', icon: Mail },
         { id: 'chatbot', label: 'AI Chatbot', icon: Bot },
         { id: 'waste-reduction', label: 'Waste Analytics', icon: TrendingUp },
         { id: 'proactive', label: 'Proactive Alerts', icon: AlertTriangle },
@@ -59,8 +56,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     if (user?.role === 'email_team') {
       return [
         ...commonItems.slice(0, 1),
-        { id: 'email-queue', label: 'Email Queue', icon: Mail },
-        { id: 'moderate-tickets', label: 'Moderate Tickets', icon: MessageCircle },
         { id: 'templates', label: 'Email Templates', icon: Library },
         ...commonItems.slice(1),
       ];

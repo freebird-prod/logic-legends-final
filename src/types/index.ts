@@ -10,7 +10,7 @@ export interface Ticket {
   id: string;
   title: string;
   description: string;
-  priority: 'normal' | 'moderate' | 'priority';
+  priority: 'normal' | 'priority';
   category: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   source: 'chat' | 'email' | 'call' | 'api';
@@ -64,7 +64,6 @@ export interface AnalyticsData {
   };
   priorityDistribution: {
     normal: number;
-    moderate: number;
     priority: number;
   };
   sustainability: {
@@ -96,4 +95,15 @@ export interface TeamMember {
   activeTickets: number;
   resolvedToday: number;
   avgResponseTime: number;
+}
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  content: string;
+  category: 'welcome' | 'support' | 'followup' | 'escalation';
+  variables: string[];
+  createdAt: string;
+  updatedAt: string;
 }

@@ -56,13 +56,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
     const text = (title + ' ' + description).toLowerCase();
 
     // Priority classification
-    let priority: 'normal' | 'moderate' | 'priority' = 'normal';
+    let priority: 'normal' | 'priority' = 'normal';
     if (text.includes('urgent') || text.includes('emergency') || text.includes('critical') ||
-      text.includes('down') || text.includes('not working') || text.includes('broken')) {
-      priority = 'priority';
-    } else if (text.includes('issue') || text.includes('problem') || text.includes('error') ||
+      text.includes('down') || text.includes('not working') || text.includes('broken') ||
+      text.includes('issue') || text.includes('problem') || text.includes('error') ||
       text.includes('help') || text.includes('billing') || text.includes('payment')) {
-      priority = 'moderate';
+      priority = 'priority';
     }
 
     // Sentiment analysis
@@ -290,8 +289,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
         status: 'open',
         source: 'chat',
         sentiment: classification.sentiment,
-        assignedTo: classification.priority === 'priority' ? 'Call Team' :
-          classification.priority === 'moderate' ? 'Email Team' : 'AI Chatbot',
+        assignedTo: classification.priority === 'priority' ? 'Call Team' : 'AI Chatbot',
         customerInfo: {
           name: user?.name || 'Anonymous User',
           email: user?.email || 'no-email@example.com',
@@ -368,7 +366,6 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
               <h3 className="font-medium text-gray-900 mb-2">What happens next:</h3>
               <ul className="text-sm text-gray-600 space-y-1">
                 <li>• Priority tickets → Immediate call from our team (3-5 minutes)</li>
-                <li>• Moderate tickets → Email response within 1 hour</li>
                 <li>• Normal tickets → AI chatbot assistance or email within 4 hours</li>
               </ul>
             </div>
@@ -420,8 +417,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
                       <span className="text-green-500">• Online</span>
                       {currentClassification && (
                         <span className={`text-xs px-2 py-1 rounded-full ${currentClassification.priority === 'priority' ? 'bg-red-100 text-red-800' :
-                          currentClassification.priority === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
+                          'bg-green-100 text-green-800'
                           }`}>
                           {currentClassification.priority.toUpperCase()}
                         </span>
@@ -648,8 +644,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
                 </p>
                 <ul className="text-sm text-blue-700 mt-2 space-y-1">
                   <li>🔴 <strong>Priority:</strong> Immediate call from our specialists</li>
-                  <li>🟡 <strong>Moderate:</strong> Email team response within 1 hour</li>
-                  <li>🟢 <strong>Normal:</strong> AI chatbot or standard email support</li>
+                  <li> <strong>Normal:</strong> AI chatbot or standard email support</li>
                 </ul>
                 <div className="mt-3 pt-3 border-t border-blue-200">
                   <p className="text-xs text-blue-600">

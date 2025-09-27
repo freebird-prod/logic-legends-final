@@ -19,7 +19,6 @@ export const SettingsPage: React.FC = () => {
     },
     routing: {
       priorityToCall: true,
-      moderateToEmail: true,
       normalToChatbot: true,
       autoEscalation: true,
     },
@@ -170,7 +169,7 @@ export const SettingsPage: React.FC = () => {
           <Database className="h-5 w-5 text-purple-600" />
           <h3 className="text-lg font-semibold text-gray-900">Advanced Configuration</h3>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -190,7 +189,7 @@ export const SettingsPage: React.FC = () => {
               <span>100%</span>
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Auto-Escalation Time (minutes)
@@ -202,7 +201,7 @@ export const SettingsPage: React.FC = () => {
               <option value="10">10 minutes</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Carbon Footprint Tracking
@@ -212,7 +211,7 @@ export const SettingsPage: React.FC = () => {
               <option value="disabled">Disabled</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Proactive Alert Sensitivity

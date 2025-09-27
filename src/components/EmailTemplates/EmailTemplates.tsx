@@ -1,46 +1,47 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
-
-interface EmailTemplate {
-    id: string;
-    name: string;
-    subject: string;
-    content: string;
-    category: 'welcome' | 'support' | 'followup' | 'escalation';
-    variables: string[];
-}
+import React, { useState, useEffect } from 'react';
+import { Send, Eye, Loader2 } from 'lucide-react';
+import { collection, getDocs } from 'firebase/firestore';
+import emailjs from '@emailjs/browser';
+import toast from 'react-hot-toast';
+import { db } from '../../../utils/firebaseConfig';
+import { EmailTemplate } from '../../types';
 
 export const EmailTemplates: React.FC = () => {
-    const [templates, setTemplates] = useState<EmailTemplate[]>([
-        {
-            id: '1',
-            name: 'Welcome Email',
-            subject: 'Welcome to Our Support System',
-            content: 'Dear {{customer_name}},\n\nWelcome to our customer support system. We\'re here to help you with any questions or issues you may have.\n\nBest regards,\nSupport Team',
-            category: 'welcome',
-            variables: ['customer_name']
-        },
-        {
-            id: '2',
-            name: 'Support Response',
-            subject: 'Re: {{ticket_title}}',
-            content: 'Dear {{customer_name}},\n\nThank you for contacting our support team. We have received your ticket and are working on resolving your issue.\n\nTicket ID: {{ticket_id}}\nPriority: {{priority}}\n\nWe will get back to you within {{response_time}}.\n\nBest regards,\n{{agent_name}}\nSupport Team',
-            category: 'support',
-            variables: ['customer_name', 'ticket_title', 'ticket_id', 'priority', 'response_time', 'agent_name']
-        },
-        {
-            id: '3',
-            name: 'Follow-up Email',
-            subject: 'Follow-up on Your Support Ticket',
-            content: 'Dear {{customer_name}},\n\nWe wanted to follow up on your recent support ticket (ID: {{ticket_id}}). Has your issue been resolved?\n\nIf you need further assistance, please don\'t hesitate to reply to this email.\n\nBest regards,\nSupport Team',
-            category: 'followup',
-            variables: ['customer_name', 'ticket_id']
-        }
-    ]);
-
-    const [showCreateForm, setShowCreateForm] = useState(false);
-    const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+    const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
+    const [sendEmailTemplate, setSendEmailTemplate] = useState<EmailTemplate | null>(null);
+    const [sending, setSending] = useState(false);
+
+    const EMAILJS_SERVICE_ID = 'service_m5nq9qc';
+    const EMAILJS_TEMPLATE_ID = 'template_gdm7rsq';
+    const EMAILJS_PUBLIC_KEY = 'k9brA3kH9BU6FsQZb';
+
+    // Fetch templates on component mount
+    useEffect(() => {
+        // Initialize EmailJS
+        emailjs.init(EMAILJS_PUBLIC_KEY);
+
+        fetchTemplates();
+    }, []);
+
+    const fetchTemplates = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const querySnapshot = await getDocs(collection(db, 'emailTemplates'));
+            const templatesData = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as EmailTemplate[];
+            setTemplates(templatesData);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getCategoryColor = (category: string) => {
         switch (category) {
@@ -52,33 +53,83 @@ export const EmailTemplates: React.FC = () => {
         }
     };
 
-    const handleDelete = (id: string) => {
-        setTemplates(templates.filter(t => t.id !== id));
-    };
+    const sendEmail = async (template: EmailTemplate, recipientEmail: string, variables: Record<string, string>) => {
+        try {
+            setSending(true);
 
-    const handleEdit = (template: EmailTemplate) => {
-        setEditingTemplate(template);
-        setShowCreateForm(true);
-    };
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(recipientEmail)) {
+                throw new Error('Invalid email address');
+            }
 
-    const handleCreate = () => {
-        setEditingTemplate(null);
-        setShowCreateForm(true);
-    };
+            // Replace variables in subject and content
+            let processedSubject = template.subject;
+            let processedContent = template.content;
 
-    const handleSave = (template: EmailTemplate) => {
-        if (editingTemplate) {
-            setTemplates(templates.map(t => t.id === editingTemplate.id ? template : t));
-        } else {
-            setTemplates([...templates, { ...template, id: Date.now().toString() }]);
+            Object.entries(variables).forEach(([key, value]) => {
+                const placeholder = `{{${key}}}`;
+                processedSubject = processedSubject.replace(new RegExp(placeholder, 'g'), value);
+                processedContent = processedContent.replace(new RegExp(placeholder, 'g'), value);
+            });
+
+            // Check if all required variables are filled
+            const missingVariables = template.variables.filter(variable => !variables[variable] || variables[variable].trim() === '');
+            if (missingVariables.length > 0) {
+                throw new Error(`Please fill in all required variables: ${missingVariables.join(', ')}`);
+            }
+
+            // Send email using EmailJS
+            // Note: EmailJS template should be configured with variables: {{subject}}, {{message}}, {{from_name}}
+            // For dynamic recipients, configure the recipient in your EmailJS service settings
+            const templateParams = {
+                subject: processedSubject,
+                message: processedContent,
+                from_name: 'Support Team'
+            };
+
+            console.log('Sending email with params:', templateParams);
+
+            await emailjs.send(
+                EMAILJS_SERVICE_ID,
+                EMAILJS_TEMPLATE_ID,
+                templateParams,
+                EMAILJS_PUBLIC_KEY
+            );
+
+            toast.success('Email sent successfully!');
+            return true;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to send email';
+            console.error('Email sending error:', err); // Debug log
+            setError(errorMessage);
+            toast.error(errorMessage);
+            return false;
+        } finally {
+            setSending(false);
         }
-        setShowCreateForm(false);
-        setEditingTemplate(null);
     };
 
-    const handleCancel = () => {
-        setShowCreateForm(false);
-        setEditingTemplate(null);
+    const handleSendEmail = (template: EmailTemplate) => {
+        setSendEmailTemplate(template);
+    };
+
+    const handleSendEmailSubmit = async (recipientEmail: string, variables: Record<string, string>) => {
+        if (!sendEmailTemplate) return;
+
+        const success = await sendEmail(sendEmailTemplate, recipientEmail, variables);
+        if (success) {
+            setSendEmailTemplate(null);
+        }
+    };
+
+    const handleCancelSend = () => {
+        setSendEmailTemplate(null);
+    };
+
+    const refreshTemplates = async () => {
+        await fetchTemplates();
+        toast.success('Templates refreshed successfully!');
     };
 
     return (
@@ -86,79 +137,92 @@ export const EmailTemplates: React.FC = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Email Templates</h2>
-                    <p className="text-gray-600">Manage email templates for different types of customer communications</p>
+                    <p className="text-gray-600">Send emails using your saved templates</p>
                 </div>
                 <button
-                    onClick={handleCreate}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={refreshTemplates}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                    <Plus className="w-4 h-4" />
-                    <span>Create Template</span>
+                    Refresh Templates
                 </button>
             </div>
 
-            {/* Templates Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {templates.map((template) => (
-                    <div key={template.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                                <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full mt-2 ${getCategoryColor(template.category)}`}>
-                                    {template.category}
-                                </span>
-                            </div>
-                            <div className="flex space-x-2">
-                                <button
-                                    onClick={() => setPreviewTemplate(template)}
-                                    className="p-1 text-gray-400 hover:text-gray-600"
-                                    title="Preview"
-                                >
-                                    <Eye className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleEdit(template)}
-                                    className="p-1 text-gray-400 hover:text-gray-600"
-                                    title="Edit"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(template.id)}
-                                    className="p-1 text-gray-400 hover:text-red-600"
-                                    title="Delete"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {error}
+                    <button
+                        onClick={() => setError(null)}
+                        className="float-right ml-4 font-bold"
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
 
-                        <div className="space-y-2">
-                            <div>
-                                <p className="text-sm font-medium text-gray-700">Subject:</p>
-                                <p className="text-sm text-gray-600 truncate">{template.subject}</p>
+            {/* Templates Grid */}
+            {loading ? (
+                <div className="flex justify-center items-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <span className="ml-2 text-gray-600">Loading templates...</span>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {templates.map((template) => (
+                        <div key={template.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">{template.name}</h3>
+                                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full mt-2 ${getCategoryColor(template.category)}`}>
+                                        {template.category}
+                                    </span>
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => setPreviewTemplate(template)}
+                                        className="p-1 text-gray-400 hover:text-gray-600"
+                                        title="Preview"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleSendEmail(template)}
+                                        className="p-1 text-blue-400 hover:text-blue-600"
+                                        title="Send Email"
+                                        disabled={sending}
+                                    >
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-700">Variables:</p>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                    {template.variables.map((variable) => (
-                                        <span key={variable} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
-                                            {variable}
-                                        </span>
-                                    ))}
+
+                            <div className="space-y-2">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Subject:</p>
+                                    <p className="text-sm text-gray-600 truncate">{template.subject}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Variables:</p>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {template.variables.map((variable) => (
+                                            <span key={variable} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                                                {variable}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
-            {/* Create/Edit Form Modal */}
-            {showCreateForm && (
-                <TemplateForm
-                    template={editingTemplate}
-                    onSave={handleSave}
-                    onCancel={handleCancel}
+            {/* Send Email Modal */}
+            {sendEmailTemplate && (
+                <SendEmailModal
+                    template={sendEmailTemplate}
+                    onSend={handleSendEmailSubmit}
+                    onCancel={handleCancelSend}
+                    sending={sending}
                 />
             )}
 
@@ -173,125 +237,104 @@ export const EmailTemplates: React.FC = () => {
     );
 };
 
-// Template Form Component
-interface TemplateFormProps {
-    template: EmailTemplate | null;
-    onSave: (template: EmailTemplate) => void;
+// Send Email Modal Component
+interface SendEmailModalProps {
+    template: EmailTemplate;
+    onSend: (recipientEmail: string, variables: Record<string, string>) => void;
     onCancel: () => void;
+    sending: boolean;
 }
 
-const TemplateForm: React.FC<TemplateFormProps> = ({ template, onSave, onCancel }) => {
-    const [formData, setFormData] = useState<EmailTemplate>(
-        template || {
-            id: '',
-            name: '',
-            subject: '',
-            content: '',
-            category: 'support',
-            variables: []
-        }
-    );
+const SendEmailModal: React.FC<SendEmailModalProps> = ({ template, onSend, onCancel, sending }) => {
+    const [recipientEmail, setRecipientEmail] = useState('');
+    const [variables, setVariables] = useState<Record<string, string>>({});
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSend(recipientEmail, variables);
     };
 
-    const extractVariables = (content: string) => {
-        const matches = content.match(/\{\{(\w+)\}\}/g);
-        return matches ? [...new Set(matches.map(m => m.slice(2, -2)))] : [];
-    };
-
-    const handleContentChange = (content: string) => {
-        setFormData({
-            ...formData,
-            content,
-            variables: extractVariables(content)
-        });
+    const handleVariableChange = (variableName: string, value: string) => {
+        setVariables(prev => ({
+            ...prev,
+            [variableName]: value
+        }));
     };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    {template ? 'Edit Template' : 'Create New Template'}
+                    Send Email: {template.name}
                 </h3>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Email</label>
                         <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            type="email"
+                            value={recipientEmail}
+                            onChange={(e) => setRecipientEmail(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <select
-                            value={formData.category}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value as EmailTemplate['category'] })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="welcome">Welcome</option>
-                            <option value="support">Support</option>
-                            <option value="followup">Follow-up</option>
-                            <option value="escalation">Escalation</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject Line</label>
-                        <input
-                            type="text"
-                            value={formData.subject}
-                            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Content</label>
-                        <textarea
-                            value={formData.content}
-                            onChange={(e) => handleContentChange(e.target.value)}
-                            rows={10}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                            placeholder="Use {{variable_name}} for dynamic content"
-                            required
-                        />
-                    </div>
-
-                    {formData.variables.length > 0 && (
+                    {template.variables.length > 0 && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Detected Variables</label>
-                            <div className="flex flex-wrap gap-2">
-                                {formData.variables.map((variable) => (
-                                    <span key={variable} className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                        {`{{${variable}}}`}
-                                    </span>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Template Variables</label>
+                            <div className="space-y-2">
+                                {template.variables.map((variable) => (
+                                    <div key={variable}>
+                                        <label className="block text-sm text-gray-600 mb-1">
+                                            {`{{${variable}}}`}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={variables[variable] || ''}
+                                            onChange={(e) => handleVariableChange(variable, e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder={`Enter value for ${variable}`}
+                                            required
+                                        />
+                                    </div>
                                 ))}
                             </div>
                         </div>
                     )}
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Preview:</h4>
+                        <div className="text-sm text-gray-600">
+                            <p><strong>Subject:</strong> {template.subject}</p>
+                            <div className="mt-2">
+                                <strong>Content:</strong>
+                                <div className="mt-1 p-2 bg-white rounded border text-sm whitespace-pre-wrap">
+                                    {template.variables.reduce((content, variable) => {
+                                        const value = variables[variable] || `{{${variable}}}`;
+                                        return content.replace(new RegExp(`{{${variable}}}`, 'g'), value);
+                                    }, template.content)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="flex justify-end space-x-3 pt-4">
                         <button
                             type="button"
                             onClick={onCancel}
                             className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                            disabled={sending}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+                            disabled={sending || !recipientEmail}
                         >
-                            {template ? 'Update Template' : 'Create Template'}
+                            {sending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                            {sending ? 'Sending...' : 'Send Email'}
                         </button>
                     </div>
                 </form>
