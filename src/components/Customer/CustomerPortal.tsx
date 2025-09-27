@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, CheckCircle, Bot, User, ThumbsUp, ThumbsDown, Sparkles, FileText } from 'lucide-react';
+import { Send, CheckCircle, Bot, User, ThumbsUp, ThumbsDown, Sparkles, FileText, Zap } from 'lucide-react';
 import { Ticket, ChatMessage } from '../../types';
+import { openRouterService, ChatClassification, OpenRouterMessage } from '../../services/openRouterService';
 
 interface CustomerPortalProps {
   onSubmitTicket: (ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -17,7 +18,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      content: 'Hello! I\'m your AI customer support assistant. I can help you with account issues, billing questions, technical problems, and more. You can either chat with me here or submit a formal ticket using the form. How can I assist you today?',
+      content: 'Hello! I\'m your AI customer support assistant powered by advanced language models. I can help you with account issues, billing questions, technical problems, and more. You can either chat with me here or submit a formal ticket using the form. How can I assist you today?',
       sender: 'bot',
       timestamp: new Date().toISOString(),
     }
@@ -27,6 +28,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [chatHeight, setChatHeight] = useState('400px');
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [conversationHistory, setConversationHistory] = useState<OpenRouterMessage[]>([]);
+  const [currentClassification, setCurrentClassification] = useState<ChatClassification | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -161,31 +164,71 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
     setIsTyping(true);
     setShowSuggestions(false);
 
-    const classification = classifyMessage(currentInput);
+    // Update conversation history for OpenRouter
+    const newConversationHistory: OpenRouterMessage[] = [
+      ...conversationHistory,
+      { role: 'user', content: currentInput }
+    ];
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Get AI response from OpenRouter
+      const response = await openRouterService.generateResponse(currentInput, conversationHistory);
 
-    const botResponse: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      content: generateResponse(currentInput, classification),
-      sender: 'bot',
-      timestamp: new Date().toISOString(),
-    };
+      const botResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: response.message,
+        sender: 'bot',
+        timestamp: new Date().toISOString(),
+      };
 
-    setMessages(prev => [...prev, botResponse]);
-    setIsTyping(false);
+      setMessages(prev => [...prev, botResponse]);
+      setCurrentClassification(response.classification);
 
-    if (classification.priority === 'priority') {
-      setTimeout(() => {
-        const systemMessage: ChatMessage = {
-          id: (Date.now() + 2).toString(),
-          content: `🚨 Priority ticket #${Math.floor(Math.random() * 9000) + 1000} has been created and assigned to our call center team. Estimated callback time: 3-5 minutes.`,
-          sender: 'bot',
-          timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, systemMessage]);
-      }, 2000);
+      // Update conversation history
+      setConversationHistory([
+        ...newConversationHistory,
+        { role: 'assistant', content: response.message }
+      ]);
+
+      // Handle priority escalation
+      if (response.classification.priority === 'priority' || response.classification.needsHuman) {
+        setTimeout(() => {
+          const systemMessage: ChatMessage = {
+            id: (Date.now() + 2).toString(),
+            content: `🚨 ${response.classification.priority === 'priority' ? 'Priority' : 'Escalated'} ticket #${Math.floor(Math.random() * 9000) + 1000} has been created and assigned to our ${response.classification.priority === 'priority' ? 'call center' : 'specialist'} team. Estimated response time: ${response.classification.priority === 'priority' ? '3-5 minutes' : '15-30 minutes'}.`,
+            sender: 'bot',
+            timestamp: new Date().toISOString()
+          };
+          setMessages(prev => [...prev, systemMessage]);
+        }, 2000);
+      }
+
+      // Show suggested actions if available
+      if (response.classification.suggestedActions.length > 0) {
+        setTimeout(() => {
+          const actionsMessage: ChatMessage = {
+            id: (Date.now() + 3).toString(),
+            content: `💡 Suggested actions:\n• ${response.classification.suggestedActions.join('\n• ')}`,
+            sender: 'bot',
+            timestamp: new Date().toISOString()
+          };
+          setMessages(prev => [...prev, actionsMessage]);
+        }, 3000);
+      }
+
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      // Show error message to user
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: "I'm sorry, I'm experiencing technical difficulties right now. Please try again in a moment, or submit a support ticket using the form below.",
+        sender: 'bot',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
+
+    setIsTyping(false);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -193,11 +236,30 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
     setShowSuggestions(false);
   };
 
-  const createTicketFromChat = () => {
-    const lastUserMessage = messages.filter(m => m.sender === 'user').pop();
-    if (lastUserMessage) {
-      setTitle('Chat Support Request');
-      setDescription(lastUserMessage.content);
+  const createTicketFromChat = async () => {
+    if (conversationHistory.length === 0) {
+      const lastUserMessage = messages.filter(m => m.sender === 'user').pop();
+      if (lastUserMessage) {
+        setTitle('Chat Support Request');
+        setDescription(lastUserMessage.content);
+      }
+      return;
+    }
+
+    try {
+      // Generate AI-powered ticket summary
+      const ticketSummary = await openRouterService.generateTicketSummary(conversationHistory);
+      setTitle(ticketSummary.title);
+      setDescription(ticketSummary.description);
+      setCategory(ticketSummary.category);
+    } catch (error) {
+      console.error('Error generating ticket summary:', error);
+      // Fallback to simple approach
+      const lastUserMessage = messages.filter(m => m.sender === 'user').pop();
+      if (lastUserMessage) {
+        setTitle('Support Request from Chat');
+        setDescription(lastUserMessage.content);
+      }
     }
   };
 
@@ -306,7 +368,18 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
                   <Bot className="h-6 w-6 text-blue-600" />
                   <div>
                     <h3 className="text-base font-semibold text-gray-900">AI Support Assistant</h3>
-                    <p className="text-xs font-semibold text-gray-600">Powered by Flipkart Care Hub</p>
+                    <p className="text-xs font-semibold text-gray-600 flex items-center space-x-2">
+                      <span>Powered by OpenRouter AI</span>
+                      <span className="text-green-500">• Online</span>
+                      {currentClassification && (
+                        <span className={`text-xs px-2 py-1 rounded-full ${currentClassification.priority === 'priority' ? 'bg-red-100 text-red-800' :
+                          currentClassification.priority === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                          {currentClassification.priority.toUpperCase()}
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <div className="flex space-x-2">
@@ -404,22 +477,28 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <p className="text-xs text-gray-500">
-                    AI will classify and route your message automatically
+                  <p className="text-xs text-gray-500 flex items-center space-x-2">
+                    <Zap className="h-3 w-3 text-blue-500" />
+                    <span>AI-powered smart routing</span>
+                    {currentClassification && (
+                      <span className="text-blue-600">
+                        • Category: {currentClassification.category}
+                      </span>
+                    )}
                   </p>
                   <button
                     onClick={createTicketFromChat}
-                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1 transition-colors"
                   >
                     <FileText className="h-3 w-3" />
                     <span>Create Ticket</span>
                   </button>
                 </div>
                 <div className="flex space-x-1">
-                  <button className="p-1 text-gray-400 hover:text-green-600">
+                  <button className="p-1 text-gray-400 hover:text-green-600 transition-colors">
                     <ThumbsUp className="h-4 w-4" />
                   </button>
-                  <button className="p-1 text-gray-400 hover:text-red-600">
+                  <button className="p-1 text-gray-400 hover:text-red-600 transition-colors">
                     <ThumbsDown className="h-4 w-4" />
                   </button>
                 </div>
