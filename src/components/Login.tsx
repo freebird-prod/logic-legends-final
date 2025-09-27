@@ -91,10 +91,10 @@ export const Login: React.FC = () => {
 
   const getEmailPlaceholder = (selectedRole: UserRole): string => {
     const placeholders: Record<UserRole, string> = {
-      admin: 'admin@company.com',
-      caller: 'caller@company.com',
-      email_team: 'email@company.com',
-      customer: 'customer@company.com'
+      admin: 'admin@company.in',
+      caller: 'caller@company.in',
+      email_team: 'email@company.in',
+      customer: 'customer@company.in'
     };
     return placeholders[selectedRole];
   };

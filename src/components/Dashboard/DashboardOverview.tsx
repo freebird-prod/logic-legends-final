@@ -27,7 +27,7 @@ export const DashboardOverview: React.FC = () => {
         { title: 'Avg Response Time', value: '2.3 min', change: '-15 sec faster', changeType: 'positive' as const, icon: Clock, color: 'purple' as const },
         { title: 'Customer Satisfaction', value: '4.8/5', change: '+0.2 from last month', changeType: 'positive' as const, icon: TrendingUp, color: 'green' as const },
         { title: 'Active Agents', value: '23', change: '5 on break', changeType: 'neutral' as const, icon: Users, color: 'blue' as const },
-        { title: 'Waste Reduction', value: '$12.5K', change: 'Saved this month', changeType: 'positive' as const, icon: TrendingUp, color: 'green' as const },
+        { title: 'Waste Reduction', value: '₹8.5L', change: 'Saved this month', changeType: 'positive' as const, icon: TrendingUp, color: 'green' as const },
       ];
     }
 

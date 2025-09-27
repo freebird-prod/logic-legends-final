@@ -223,7 +223,7 @@ export const EnhancedAnalytics: React.FC = () => {
             <div key={alert.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className={`h-2 w-2 rounded-full ${alert.severity === 'critical' ? 'bg-red-500' :
-                    alert.severity === 'warning' ? 'bg-orange-500' : 'bg-blue-500'
+                  alert.severity === 'warning' ? 'bg-orange-500' : 'bg-blue-500'
                   }`}></div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">{alert.title}</p>
@@ -272,7 +272,7 @@ export const EnhancedAnalytics: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Cost Savings</span>
-              <span className="text-lg font-bold text-green-600">$42,350</span>
+              <span className="text-lg font-bold text-green-600">₹28,50,000</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Time Saved</span>

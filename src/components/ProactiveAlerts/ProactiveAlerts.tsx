@@ -85,7 +85,7 @@ export const ProactiveAlerts: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-green-100 rounded-lg">
@@ -97,7 +97,7 @@ export const ProactiveAlerts: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -131,16 +131,16 @@ export const ProactiveAlerts: React.FC = () => {
                     </div>
                     <span className="text-xs text-gray-500">{alert.time}</span>
                   </div>
-                  
+
                   <p className="text-sm text-gray-600 mb-3">{alert.description}</p>
-                  
+
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">
                       Affected users: <span className="font-medium">{alert.affectedUsers}</span>
                     </span>
                     <span className="text-green-600 font-medium">{alert.action}</span>
                   </div>
-                  
+
                   <div className="mt-3 flex space-x-2">
                     <button className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
                       View Details
@@ -184,7 +184,7 @@ export const ProactiveAlerts: React.FC = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Cost Savings</span>
-                <span className="text-lg font-bold text-green-600">$42,350</span>
+                <span className="text-lg font-bold text-green-600">₹28,50,000</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Customer Satisfaction</span>

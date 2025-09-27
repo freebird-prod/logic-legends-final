@@ -5,9 +5,9 @@ import { MetricCard } from '../Dashboard/MetricCard';
 export const WasteAnalytics: React.FC = () => {
   const wasteMetrics = [
     { title: 'Product Defect Tickets', value: '89', change: '-12% from last month', changeType: 'positive' as const, icon: Package, color: 'red' as const },
-    { title: 'Return/Replacement Costs', value: '$4,250', change: '-$800 saved', changeType: 'positive' as const, icon: RefreshCw, color: 'orange' as const },
+    { title: 'Return/Replacement Costs', value: '₹2,85,000', change: '₹53,000 saved', changeType: 'positive' as const, icon: RefreshCw, color: 'orange' as const },
     { title: 'Shipping Error Tickets', value: '34', change: '-6 fewer errors', changeType: 'positive' as const, icon: AlertTriangle, color: 'orange' as const },
-    { title: 'Total Waste Reduction', value: '$12,500', change: '+$2,100 this month', changeType: 'positive' as const, icon: DollarSign, color: 'green' as const },
+    { title: 'Total Waste Reduction', value: '₹8,50,000', change: '₹1,40,000 this month', changeType: 'positive' as const, icon: DollarSign, color: 'green' as const },
   ];
 
   return (
@@ -30,10 +30,10 @@ export const WasteAnalytics: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Waste Categories Breakdown</h3>
           <div className="space-y-4">
             {[
-              { category: 'Product Defects', amount: '$5,200', percentage: 42, color: 'bg-red-500' },
-              { category: 'Shipping Errors', amount: '$3,100', percentage: 25, color: 'bg-orange-500' },
-              { category: 'User Confusion', amount: '$2,800', percentage: 23, color: 'bg-yellow-500' },
-              { category: 'Process Issues', amount: '$1,400', percentage: 10, color: 'bg-blue-500' },
+              { category: 'Product Defects', amount: '₹3,50,000', percentage: 42, color: 'bg-red-500' },
+              { category: 'Shipping Errors', amount: '₹2,10,000', percentage: 25, color: 'bg-orange-500' },
+              { category: 'User Confusion', amount: '₹1,90,000', percentage: 23, color: 'bg-yellow-500' },
+              { category: 'Process Issues', amount: '₹1,00,000', percentage: 10, color: 'bg-blue-500' },
             ].map((item, index) => (
               <div key={index}>
                 <div className="flex justify-between items-center mb-2">
@@ -58,21 +58,21 @@ export const WasteAnalytics: React.FC = () => {
               {
                 title: 'Optimize Product Documentation',
                 description: 'Reduce confusion tickets by 30%',
-                impact: '$2,400/month',
+                impact: '₹1,60,000/month',
                 status: 'in-progress',
                 icon: CheckCircle,
               },
               {
                 title: 'Improve QA Process',
                 description: 'Reduce defect tickets by 25%',
-                impact: '$1,800/month',
+                impact: '₹1,20,000/month',
                 status: 'planned',
                 icon: Package,
               },
               {
                 title: 'Enhanced Packaging',
                 description: 'Reduce shipping damage by 40%',
-                impact: '$1,200/month',
+                impact: '₹80,000/month',
                 status: 'proposed',
                 icon: RefreshCw,
               },
@@ -85,13 +85,12 @@ export const WasteAnalytics: React.FC = () => {
                     <p className="text-sm text-gray-600 mt-1">{opportunity.description}</p>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-sm font-medium text-green-600">Save {opportunity.impact}</span>
-                      <span className={`text-xs px-2 py-1 rounded-md ${
-                        opportunity.status === 'in-progress' 
+                      <span className={`text-xs px-2 py-1 rounded-md ${opportunity.status === 'in-progress'
                           ? 'bg-yellow-100 text-yellow-800'
                           : opportunity.status === 'planned'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
                         {opportunity.status.replace('-', ' ')}
                       </span>
                     </div>

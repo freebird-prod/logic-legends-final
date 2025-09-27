@@ -14,9 +14,9 @@ export const mockTickets: Ticket[] = [
     createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
     updatedAt: new Date().toISOString(),
     customerInfo: {
-      name: 'Sarah Johnson',
-      email: 'sarah.j@techcorp.com',
-      phone: '+1-555-0123'
+      name: 'Priya Sharma',
+      email: 'priya.sharma@techcorp.in',
+      phone: '+91-98765-01234'
     }
   },
   {
@@ -32,9 +32,9 @@ export const mockTickets: Ticket[] = [
     createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     customerInfo: {
-      name: 'Michael Chen',
-      email: 'mchen@startup.io',
-      phone: '+1-555-0456'
+      name: 'Rajesh Kumar',
+      email: 'rajesh.kumar@startup.co.in',
+      phone: '+91-98765-04567'
     }
   },
   {
@@ -50,8 +50,8 @@ export const mockTickets: Ticket[] = [
     createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
     customerInfo: {
-      name: 'Emily Rodriguez',
-      email: 'emily.r@email.com'
+      name: 'Anjali Patel',
+      email: 'anjali.patel@email.in'
     }
   },
   {
@@ -67,15 +67,15 @@ export const mockTickets: Ticket[] = [
     createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
     customerInfo: {
-      name: 'David Wilson',
-      email: 'dwilson@gmail.com',
-      phone: '+1-555-0789'
+      name: 'Vikram Singh',
+      email: 'vikram.singh@gmail.com',
+      phone: '+91-98765-07890'
     }
   },
   {
     id: '2843',
     title: 'Server maintenance notification - proactive alert',
-    description: 'Scheduled maintenance will occur tonight from 2-4 AM EST. Service may be temporarily unavailable.',
+    description: 'Scheduled maintenance will occur tonight from 2-4 AM IST. Service may be temporarily unavailable.',
     priority: 'normal',
     category: 'system',
     status: 'closed',
@@ -86,7 +86,7 @@ export const mockTickets: Ticket[] = [
     updatedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     customerInfo: {
       name: 'System Alert',
-      email: 'system@company.com'
+      email: 'system@company.in'
     }
   },
   {
@@ -102,9 +102,9 @@ export const mockTickets: Ticket[] = [
     createdAt: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
     customerInfo: {
-      name: 'Jennifer Lee',
-      email: 'jlee@company.org',
-      phone: '+1-555-0321'
+      name: 'Kavita Reddy',
+      email: 'kavita.reddy@company.in',
+      phone: '+91-98765-03210'
     }
   },
   {
@@ -120,8 +120,8 @@ export const mockTickets: Ticket[] = [
     createdAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
     customerInfo: {
-      name: 'Robert Martinez',
-      email: 'rmartinez@business.net'
+      name: 'Arun Gupta',
+      email: 'arun.gupta@business.in'
     }
   },
   {
@@ -138,7 +138,7 @@ export const mockTickets: Ticket[] = [
     updatedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
     customerInfo: {
       name: 'System Monitor',
-      email: 'monitor@company.com'
+      email: 'monitor@company.in'
     }
   }
 ];

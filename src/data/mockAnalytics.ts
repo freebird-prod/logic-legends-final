@@ -8,13 +8,13 @@ export const mockAnalytics: AnalyticsData = {
   wasteReduction: {
     defectTickets: 89,
     returnTickets: 156,
-    potentialSavings: 12500,
+    potentialSavings: 850000, // INR
     carbonSaved: 2.4,
     wasteByCategory: {
-      product_defect: 5200,
-      shipping_error: 3100,
-      user_confusion: 2800,
-      process_issue: 1400,
+      product_defect: 350000, // INR
+      shipping_error: 210000, // INR
+      user_confusion: 190000, // INR
+      process_issue: 100000, // INR
     },
   },
   priorityDistribution: {
@@ -68,8 +68,8 @@ export const mockProactiveAlerts: ProactiveAlert[] = [
 export const mockTeamMembers: TeamMember[] = [
   {
     id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.j@company.com',
+    name: 'Priya Sharma',
+    email: 'priya.sharma@company.in',
     role: 'caller',
     status: 'online',
     activeTickets: 3,
@@ -78,8 +78,8 @@ export const mockTeamMembers: TeamMember[] = [
   },
   {
     id: '2',
-    name: 'Mike Chen',
-    email: 'mike.c@company.com',
+    name: 'Rajesh Kumar',
+    email: 'rajesh.kumar@company.in',
     role: 'caller',
     status: 'busy',
     activeTickets: 5,
@@ -88,8 +88,8 @@ export const mockTeamMembers: TeamMember[] = [
   },
   {
     id: '3',
-    name: 'Emily Rodriguez',
-    email: 'emily.r@company.com',
+    name: 'Anjali Patel',
+    email: 'anjali.patel@company.in',
     role: 'email_team',
     status: 'online',
     activeTickets: 7,
@@ -98,8 +98,8 @@ export const mockTeamMembers: TeamMember[] = [
   },
   {
     id: '4',
-    name: 'David Wilson',
-    email: 'david.w@company.com',
+    name: 'Vikram Singh',
+    email: 'vikram.singh@company.in',
     role: 'email_team',
     status: 'away',
     activeTickets: 2,
