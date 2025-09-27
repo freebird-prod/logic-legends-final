@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Shield, Mail, Phone, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 
 type UserRole = 'admin' | 'caller' | 'email_team' | 'customer';
 

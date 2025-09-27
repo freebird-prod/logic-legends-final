@@ -7,7 +7,6 @@ import { ChatInterface } from './components/Chatbot/ChatInterface';
 import { TicketList } from './components/TicketManagement/TicketList';
 import { WasteAnalytics } from './components/Analytics/WasteAnalytics';
 import { ProactiveAlerts } from './components/ProactiveAlerts/ProactiveAlerts';
-import { SettingsPage } from './components/Settings/SettingsPage';
 import { CustomerPortal } from './components/Customer/CustomerPortal';
 import { EnhancedAnalytics } from './components/Analytics/EnhancedAnalytics';
 import { TeamManagement } from './components/TeamManagement/TeamManagement';
@@ -66,7 +65,6 @@ const NavigationSidebar: React.FC = () => {
     const commonItems = [
       { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
       { id: 'library', label: 'Ticket Library', icon: Library, path: '/library' },
-      { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
     ];
 
     if (user?.role === 'admin') {
@@ -399,7 +397,6 @@ const AppContent: React.FC = () => {
 
               {/* Common Routes - Accessible to all authenticated non-customer users */}
               <Route path="/library" element={<TicketList title="Ticket Library" tickets={tickets} />} />
-              <Route path="/settings" element={<SettingsPage />} />
 
               {/* Fallback - redirect to dashboard for any unmatched routes */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
