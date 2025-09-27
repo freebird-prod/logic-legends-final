@@ -217,22 +217,17 @@ const AppContent: React.FC = () => {
   const { user, logout, isLoggingOut } = useAuth();
   const [tickets, setTickets] = useState(mockTickets);
 
-  const handleSubmitTicket = (newTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const ticket: Ticket = {
-      ...newTicket,
-      id: (Date.now()).toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setTickets(prev => [ticket, ...prev]);
+  const handleSubmitTicket = (newTicket: Ticket) => {
+    // Add the ticket to local state for immediate UI updates
+    setTickets(prev => [newTicket, ...prev]);
 
     // Simulate real-time notification to teams
-    console.log('New ticket submitted:', ticket);
+    console.log('New ticket submitted:', newTicket);
 
     // Auto-route based on priority
-    if (ticket.priority === 'priority') {
+    if (newTicket.priority === 'priority') {
       console.log('Priority ticket routed to Call Team');
-    } else if (ticket.priority === 'moderate') {
+    } else if (newTicket.priority === 'moderate') {
       console.log('Moderate ticket routed to Email Team');
     } else {
       console.log('Normal ticket routed to AI Chatbot');

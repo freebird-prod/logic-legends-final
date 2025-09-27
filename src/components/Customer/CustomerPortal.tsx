@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, CheckCircle, Bot, User, ThumbsUp, ThumbsDown, Sparkles, FileText, Zap } from 'lucide-react';
 import { Ticket, ChatMessage } from '../../types';
 import { openRouterService, ChatClassification, OpenRouterMessage } from '../../services/openRouterService';
+import { TicketService } from '../../services/ticketService';
 
 interface CustomerPortalProps {
-  onSubmitTicket: (ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubmitTicket: (ticket: Ticket) => void;
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }) => {
@@ -269,41 +270,56 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
 
     setIsSubmitting(true);
 
-    const classification = classifyTicket(title, description);
+    try {
+      const classification = classifyTicket(title, description);
 
-    const newTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'> = {
-      title,
-      description,
-      priority: classification.priority,
-      category,
-      status: 'open',
-      source: 'chat',
-      sentiment: classification.sentiment,
-      assignedTo: classification.priority === 'priority' ? 'Call Team' :
-        classification.priority === 'moderate' ? 'Email Team' : 'AI Chatbot',
-      customerInfo: {
-        name: 'Customer User', // This would come from auth context
-        email: 'customer@email.com',
-        phone: '+1-555-0000'
-      },
-      wasteCategory: classification.wasteCategory,
-      carbonFootprint: Math.random() * 0.5, // Simulated carbon footprint
-    };
+      const newTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'> = {
+        title,
+        description,
+        priority: classification.priority,
+        category,
+        status: 'open',
+        source: 'chat',
+        sentiment: classification.sentiment,
+        assignedTo: classification.priority === 'priority' ? 'Call Team' :
+          classification.priority === 'moderate' ? 'Email Team' : 'AI Chatbot',
+        customerInfo: {
+          name: 'Customer User', // This would come from auth context
+          email: 'customer@email.com',
+          phone: '+1-555-0000'
+        },
+        wasteCategory: classification.wasteCategory,
+        carbonFootprint: Math.random() * 0.5, // Simulated carbon footprint
+      };
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+      // Save ticket to Firestore
+      const ticketId = await TicketService.createTicket(newTicket);
 
-    onSubmitTicket(newTicket);
-    setIsSubmitting(false);
-    setSubmitted(true);
+      // Create a complete ticket object with the generated ID for the parent component
+      const completeTicket: Ticket = {
+        ...newTicket,
+        id: ticketId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setTitle('');
-      setDescription('');
-      setCategory('general');
-      setSubmitted(false);
-    }, 3000);
+      onSubmitTicket(completeTicket);
+      setIsSubmitting(false);
+      setSubmitted(true);
+
+      // Reset form after 3 seconds
+      setTimeout(() => {
+        setTitle('');
+        setDescription('');
+        setCategory('general');
+        setSubmitted(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error submitting ticket:', error);
+      setIsSubmitting(false);
+      // You could add error state handling here
+      alert('Failed to submit ticket. Please try again.');
+    }
   };
 
   if (submitted) {
