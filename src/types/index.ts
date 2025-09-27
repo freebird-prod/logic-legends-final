@@ -37,6 +37,14 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export interface ChatSession {
+  id: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+  title?: string;
+}
+
 export interface AnalyticsData {
   totalTickets: number;
   resolvedTickets: number;

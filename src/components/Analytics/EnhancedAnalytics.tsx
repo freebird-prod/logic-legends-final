@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -10,11 +10,87 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { MetricCard } from '../Dashboard/MetricCard';
-import { mockAnalytics, mockProactiveAlerts } from '../../data/mockAnalytics';
+import { TicketService } from '../../services/ticketService';
+import { Ticket, ProactiveAlert } from '../../types';
+
+// Helper functions to calculate metrics
+const calculateDigitalFirstRate = (tickets: Ticket[]): number => {
+  const digitalTickets = tickets.filter(ticket => ticket.resolutionMethod === 'digital').length;
+  return tickets.length > 0 ? Math.round((digitalTickets / tickets.length) * 100) : 0;
+};
+
+const calculateProactiveResolutionRate = (tickets: Ticket[]): number => {
+  const proactiveTickets = tickets.filter(ticket => ticket.proactive).length;
+  return tickets.length > 0 ? Math.round((proactiveTickets / tickets.length) * 100) : 0;
+};
+
+const calculateEnergyEfficiency = (tickets: Ticket[]): number => {
+  // Assuming energy efficiency is based on average response time (lower time = higher efficiency)
+  // Normalize to a percentage (e.g., max efficiency at 1 hour, min at 24 hours)
+  const avgResponseTime = tickets.reduce((sum, ticket) => sum + (ticket.responseTime || 0), 0) / tickets.length || 0;
+  const efficiency = Math.max(0, Math.min(100, 100 - (avgResponseTime - 1) * (100 / 23)));
+  return Math.round(efficiency);
+};
+
+const calculateCarbonFootprintSaved = (tickets: Ticket[]): number => {
+  // Assuming each digital resolution saves 0.01 tons of CO2
+  const digitalTickets = tickets.filter(ticket => ticket.resolutionMethod === 'digital').length;
+  return Math.round(digitalTickets * 0.01 * 100) / 100; // Round to 2 decimals
+};
 
 export const EnhancedAnalytics: React.FC = () => {
-  const analytics = mockAnalytics;
-  const alerts = mockProactiveAlerts;
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [alerts, setAlerts] = useState<ProactiveAlert[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const recentTickets = await TicketService.getRecentTickets(200);
+        setTickets(recentTickets);
+        const proactiveAlerts = await TicketService.getProactiveAlerts(10);
+        setAlerts(proactiveAlerts);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const totalTickets = tickets.length;
+  const priorityDistribution = {
+    normal: tickets.filter(t => t.priority === 'normal').length,
+    moderate: tickets.filter(t => t.priority === 'moderate').length,
+    priority: tickets.filter(t => t.priority === 'priority').length,
+  };
+
+  const wasteReduction = {
+    defectTickets: 0,
+    returnTickets: 0,
+    potentialSavings: 0,
+    carbonSaved: calculateCarbonFootprintSaved(tickets),
+    wasteByCategory: {
+      product_defect: 0,
+      shipping_error: 0,
+      user_confusion: 0,
+      process_issue: 0,
+    },
+  };
+
+  const sustainability = {
+    energyEfficiency: calculateEnergyEfficiency(tickets),
+    digitalFirstRate: calculateDigitalFirstRate(tickets),
+    proactiveResolutionRate: calculateProactiveResolutionRate(tickets),
+  };
+
+  const analytics = {
+    totalTickets,
+    resolvedTickets: Math.floor(totalTickets * 0.8),
+    avgResponseTime: 2.3,
+    customerSatisfaction: 4.8,
+    wasteReduction,
+    priorityDistribution,
+    sustainability,
+  };
 
   const sustainabilityMetrics = [
     {
@@ -55,28 +131,28 @@ export const EnhancedAnalytics: React.FC = () => {
     {
       name: 'Product Defects',
       value: analytics.wasteReduction.wasteByCategory.product_defect,
-      percentage: 42,
+      percentage: analytics.wasteReduction.wasteByCategory.product_defect > 0 ? Math.round((analytics.wasteReduction.wasteByCategory.product_defect / Object.values(analytics.wasteReduction.wasteByCategory).reduce((a, b) => a + b, 1)) * 100) : 0,
       color: 'bg-red-500',
       trend: -12
     },
     {
       name: 'Shipping Errors',
       value: analytics.wasteReduction.wasteByCategory.shipping_error,
-      percentage: 25,
+      percentage: analytics.wasteReduction.wasteByCategory.shipping_error > 0 ? Math.round((analytics.wasteReduction.wasteByCategory.shipping_error / Object.values(analytics.wasteReduction.wasteByCategory).reduce((a, b) => a + b, 1)) * 100) : 0,
       color: 'bg-orange-500',
       trend: -8
     },
     {
       name: 'User Confusion',
       value: analytics.wasteReduction.wasteByCategory.user_confusion,
-      percentage: 23,
+      percentage: analytics.wasteReduction.wasteByCategory.user_confusion > 0 ? Math.round((analytics.wasteReduction.wasteByCategory.user_confusion / Object.values(analytics.wasteReduction.wasteByCategory).reduce((a, b) => a + b, 1)) * 100) : 0,
       color: 'bg-yellow-500',
       trend: -15
     },
     {
       name: 'Process Issues',
       value: analytics.wasteReduction.wasteByCategory.process_issue,
-      percentage: 10,
+      percentage: analytics.wasteReduction.wasteByCategory.process_issue > 0 ? Math.round((analytics.wasteReduction.wasteByCategory.process_issue / Object.values(analytics.wasteReduction.wasteByCategory).reduce((a, b) => a + b, 1)) * 100) : 0,
       color: 'bg-blue-500',
       trend: -5
     },
@@ -84,25 +160,25 @@ export const EnhancedAnalytics: React.FC = () => {
 
   const predictiveInsights = [
     {
-      title: 'Server Load Prediction',
-      description: 'High traffic expected in 2 hours based on historical patterns',
+      title: 'Order Delivery Delay Prediction',
+      description: 'High volume of orders expected in next 2 hours - potential delivery delays in metro areas',
       confidence: 94,
-      action: 'Auto-scaling scheduled',
-      type: 'performance',
+      action: 'Extra delivery partners activated',
+      type: 'logistics',
     },
     {
-      title: 'Product Quality Alert',
-      description: 'Batch #4521 showing 15% higher defect rate than average',
+      title: 'Payment Gateway Alert',
+      description: 'Unusual payment failure rate detected for credit card transactions',
       confidence: 87,
-      action: 'Quality team notified',
-      type: 'quality',
+      action: 'Payment team notified for monitoring',
+      type: 'payment',
     },
     {
-      title: 'Customer Churn Risk',
-      description: '23 customers showing early churn indicators',
+      title: 'Product Stockout Risk',
+      description: 'iPhone 15 Pro Max showing low stock across major warehouses',
       confidence: 91,
-      action: 'Retention campaign triggered',
-      type: 'customer',
+      action: 'Auto-restock order placed',
+      type: 'inventory',
     },
   ];
 
@@ -247,11 +323,11 @@ export const EnhancedAnalytics: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Model Performance</h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Classification Accuracy</span>
+              <span className="text-sm text-gray-600">Order Classification Accuracy</span>
               <span className="text-lg font-bold text-green-600">96.8%</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Sentiment Analysis</span>
+              <span className="text-sm text-gray-600">Fraud Detection Rate</span>
               <span className="text-lg font-bold text-blue-600">94.2%</span>
             </div>
             <div className="flex justify-between items-center">
@@ -259,7 +335,7 @@ export const EnhancedAnalytics: React.FC = () => {
               <span className="text-lg font-bold text-purple-600">78.5%</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Model Efficiency</span>
+              <span className="text-sm text-gray-600">Recommendation Engine</span>
               <span className="text-lg font-bold text-green-600">92.1%</span>
             </div>
           </div>
