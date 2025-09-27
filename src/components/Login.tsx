@@ -57,20 +57,43 @@ export const Login: React.FC = () => {
     if (isSignup) {
       const success = await signup(email, password, role, fullName);
       if (success) {
-        // Small delay to ensure auth state has propagated
+        console.log('Signup successful, navigating for role:', role);
+        // Longer delay to ensure auth state has fully propagated
         setTimeout(() => {
-          navigate(role === 'customer' ? '/' : '/dashboard');
-        }, 100);
+          navigateBasedOnRole(role);
+        }, 500);
       }
       return;
     }
 
     const success = await login(email, password, role);
+    console.log('Login attempt result:', success, 'for role:', role);
     if (success) {
-      // Small delay to ensure auth state has propagated
+      // Longer delay to ensure auth state has fully propagated
       setTimeout(() => {
-        navigate(role === 'customer' ? '/' : '/dashboard');
-      }, 100);
+        navigateBasedOnRole(role);
+      }, 500);
+    }
+  };
+
+  const navigateBasedOnRole = (userRole: UserRole) => {
+    console.log('Navigating based on role:', userRole);
+    switch (userRole) {
+      case 'admin':
+        navigate('/dashboard');
+        break;
+      case 'caller':
+        navigate('/priority-calls');
+        break;
+      case 'email_team':
+        navigate('/email-queue');
+        break;
+      case 'customer':
+        navigate('/');
+        break;
+      default:
+        console.warn('Unknown role, defaulting to dashboard:', userRole);
+        navigate('/dashboard');
     }
   };
 

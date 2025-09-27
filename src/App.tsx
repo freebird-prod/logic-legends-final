@@ -29,7 +29,7 @@ import {
 import { mockTickets } from './data/mockTickets';
 import { Ticket } from './types';
 
-// Protected Route Component
+// Protected Route Component with Role-Based Default Redirection
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
@@ -48,6 +48,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // For root path, redirect admin users specifically to dashboard
+  if (location.pathname === '/' && user.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -180,11 +185,12 @@ const NavigationSidebar: React.FC = () => {
   );
 };
 
-// Role-Based Route Component
+// Role-Based Route Component with Enhanced Access Control
 const RoleBasedRoute: React.FC<{
   children: React.ReactNode;
-  allowedRoles: string[]
-}> = ({ children, allowedRoles }) => {
+  allowedRoles: string[];
+  redirectTo?: string;
+}> = ({ children, allowedRoles, redirectTo = '/dashboard' }) => {
   const { user, isLoading } = useAuth();
 
   // Show loading while determining auth state
@@ -199,8 +205,14 @@ const RoleBasedRoute: React.FC<{
     );
   }
 
-  if (!user || !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+  // Redirect to login if not authenticated
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Redirect to specified route if user doesn't have required role
+  if (!allowedRoles.includes(user.role)) {
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;
@@ -305,10 +317,13 @@ const AppContent: React.FC = () => {
         <main className="flex-1 overflow-y-auto bg-gray-50">
           <div className="p-6">
             <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {/* Root route - direct access to dashboard */}
+              <Route path="/" element={<DashboardOverview />} />
+
+              {/* Dashboard - accessible to all authenticated users */}
               <Route path="/dashboard" element={<DashboardOverview />} />
 
-              {/* Admin Routes */}
+              {/* Admin-Only Routes - Full access to all system features */}
               <Route path="/analytics" element={
                 <RoleBasedRoute allowedRoles={['admin']}>
                   <EnhancedAnalytics />
@@ -353,7 +368,7 @@ const AppContent: React.FC = () => {
                 </RoleBasedRoute>
               } />
 
-              {/* Caller Routes */}
+              {/* Caller-Only Routes - Call team specific features */}
               <Route path="/priority-calls" element={
                 <RoleBasedRoute allowedRoles={['caller']}>
                   <TicketList title="Priority Calls" tickets={tickets.filter(t => t.priority === 'priority')} />
@@ -365,7 +380,7 @@ const AppContent: React.FC = () => {
                 </RoleBasedRoute>
               } />
 
-              {/* Email Team Routes */}
+              {/* Email Team-Only Routes - Email team specific features */}
               <Route path="/email-queue" element={
                 <RoleBasedRoute allowedRoles={['email_team']}>
                   <TicketList title="Email Queue" tickets={tickets.filter(t => t.source === 'email')} />
@@ -382,11 +397,11 @@ const AppContent: React.FC = () => {
                 </RoleBasedRoute>
               } />
 
-              {/* Common Routes */}
+              {/* Common Routes - Accessible to all authenticated non-customer users */}
               <Route path="/library" element={<TicketList title="Ticket Library" tickets={tickets} />} />
               <Route path="/settings" element={<SettingsPage />} />
 
-              {/* Fallback */}
+              {/* Fallback - redirect to dashboard for any unmatched routes */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>

@@ -12,6 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticating: boolean;
   isLoggingOut: boolean;
+  getCurrentRole: () => User['role'] | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,22 +25,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Initialize user state from localStorage on component mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const storedRole = localStorage.getItem('userRole');
+
+    if (storedUser && storedRole) {
+      try {
+        const parsedUser = JSON.parse(storedUser) as User;
+        // Ensure the role from localStorage is applied
+        parsedUser.role = storedRole as User['role'];
+        setUser(parsedUser);
+        console.log('User state recovered from localStorage:', parsedUser);
+      } catch (error) {
+        console.error('Failed to parse stored user:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        const role = localStorage.getItem('userRole') as User['role'] || 'customer';
+        // Get role from localStorage or default to customer
+        const storedRole = localStorage.getItem('userRole') as User['role'];
+        const role = storedRole || 'customer';
+
         const userData: User = {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
           role,
           name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
         };
-        setUser(userData);
+
+        // Ensure role is stored in localStorage
+        localStorage.setItem('userRole', role);
         localStorage.setItem('user', JSON.stringify(userData));
+
+        setUser(userData);
+        console.log('User state updated:', userData);
       } else {
         setUser(null);
         localStorage.removeItem('user');
         localStorage.removeItem('userRole');
+        console.log('User logged out, state cleared');
       }
       setIsLoading(false);
     });
@@ -50,12 +80,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string, role: User['role']): Promise<boolean> => {
     setIsAuthenticating(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // Store role before authentication to ensure it's available in onAuthStateChanged
       localStorage.setItem('userRole', role);
+      console.log('Role stored before login:', role);
+
+      await signInWithEmailAndPassword(auth, email, password);
+
+      // Verify role was properly stored
+      const storedRole = localStorage.getItem('userRole');
+      console.log('Role verification after login:', storedRole);
+
       toast.success('Successfully signed in!');
       return true;
     } catch (error: any) {
       console.error('Login error:', error);
+      // Clear role on login failure
+      localStorage.removeItem('userRole');
+
       let errorMessage = 'Failed to sign in. Please try again.';
 
       switch (error.code) {
@@ -89,13 +130,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signup = async (email: string, password: string, role: User['role'], name: string): Promise<boolean> => {
     setIsAuthenticating(true);
     try {
+      // Store role before authentication to ensure it's available in onAuthStateChanged
+      localStorage.setItem('userRole', role);
+      console.log('Role stored before signup:', role);
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
-      localStorage.setItem('userRole', role);
+
+      // Verify role was properly stored
+      const storedRole = localStorage.getItem('userRole');
+      console.log('Role verification after signup:', storedRole);
+
       toast.success('Account created successfully! Welcome!');
       return true;
     } catch (error: any) {
       console.error('Signup error:', error);
+      // Clear role on signup failure
+      localStorage.removeItem('userRole');
+
       let errorMessage = 'Failed to create account. Please try again.';
 
       switch (error.code) {
@@ -162,8 +214,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const getCurrentRole = (): User['role'] | null => {
+    return user?.role || localStorage.getItem('userRole') as User['role'] || null;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading, isAuthenticating, isLoggingOut }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isLoading, isAuthenticating, isLoggingOut, getCurrentRole }}>
       {children}
     </AuthContext.Provider>
   );
