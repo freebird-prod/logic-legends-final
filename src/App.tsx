@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, NavLink } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { DashboardOverview } from './components/Dashboard/DashboardOverview';
 import { ChatInterface } from './components/Chatbot/ChatInterface';
+//@ts-ignore
 import { TicketList } from './components/TicketManagement/TicketList';
 import { WasteAnalytics } from './components/Analytics/WasteAnalytics';
 import { ProactiveAlerts } from './components/ProactiveAlerts/ProactiveAlerts';
@@ -11,6 +12,8 @@ import { CustomerPortal } from './components/Customer/CustomerPortal';
 import { EnhancedAnalytics } from './components/Analytics/EnhancedAnalytics';
 import { TeamManagement } from './components/TeamManagement/TeamManagement';
 import { EmailTemplates } from './components/EmailTemplates/EmailTemplates';
+import { PriorityCalls } from './components/PriorityCalls/PriorityCalls';
+import { Escalations } from './components/Escalations/Escalations';
 import {
   Home,
   MessageCircle,
@@ -28,6 +31,7 @@ import {
 import { Toaster } from 'react-hot-toast';
 import { mockTickets } from './data/mockTickets';
 import { Ticket } from './types';
+import { TicketService } from './services/ticketService';
 
 // Protected Route Component with Role-Based Default Redirection
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -217,21 +221,64 @@ const RoleBasedRoute: React.FC<{
 const AppContent: React.FC = () => {
   const { user, logout, isLoggingOut } = useAuth();
   const [tickets, setTickets] = useState(mockTickets);
+  const [hasSeededData, setHasSeededData] = useState(false);
 
-  const handleSubmitTicket = (newTicket: Ticket) => {
-    // Add the ticket to local state for immediate UI updates
-    setTickets(prev => [newTicket, ...prev]);
+  // Seed mock data to Firestore on first load
+  useEffect(() => {
+    const seedMockData = async () => {
+      if (hasSeededData) return;
 
-    // Simulate real-time notification to teams
-    console.log('New ticket submitted:', newTicket);
+      try {
+        // Try to seed mock tickets to Firestore
+        // We'll use a flag in localStorage to avoid seeding multiple times
+        const seededFlag = localStorage.getItem('mockDataSeeded');
+        if (!seededFlag) {
+          console.log('Seeding mock tickets to Firestore...');
+          for (const ticket of mockTickets) {
+            try {
+              await TicketService.seedTicket(ticket);
+              console.log(`Seeded ticket: ${ticket.title}`);
+            } catch (error) {
+              console.error(`Error seeding ticket ${ticket.title}:`, error);
+            }
+          }
+          localStorage.setItem('mockDataSeeded', 'true');
+          console.log('Mock tickets seeding completed');
+        }
+        setHasSeededData(true);
+      } catch (error) {
+        console.error('Error in seeding process:', error);
+        setHasSeededData(true); // Don't retry on error
+      }
+    };
 
-    // Auto-route based on priority
-    if (newTicket.priority === 'priority') {
-      console.log('Priority ticket routed to Call Team');
-    } else if (newTicket.priority === 'moderate') {
-      console.log('Moderate ticket routed to Email Team');
-    } else {
-      console.log('Normal ticket routed to AI Chatbot');
+    seedMockData();
+  }, [hasSeededData]);
+
+  const handleSubmitTicket = async (newTicket: Ticket) => {
+    try {
+      // Save to Firestore first
+      const ticketId = await TicketService.createTicket(newTicket);
+      const ticketWithId = { ...newTicket, id: ticketId };
+
+      // Add the ticket to local state for immediate UI updates
+      setTickets(prev => [ticketWithId, ...prev]);
+
+      // Simulate real-time notification to teams
+      console.log('New ticket submitted:', ticketWithId);
+
+      // Auto-route based on priority
+      if (newTicket.priority === 'priority') {
+        console.log('Priority ticket routed to Call Team');
+      } else if (newTicket.priority === 'moderate') {
+        console.log('Moderate ticket routed to Email Team');
+      } else {
+        console.log('Normal ticket routed to AI Chatbot');
+      }
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      // Still add to local state even if Firestore fails, for better UX
+      setTickets(prev => [newTicket, ...prev]);
     }
   };
 
@@ -350,6 +397,16 @@ const AppContent: React.FC = () => {
               } />
 
               {/* Caller-Only Routes - Call team specific features */}
+              <Route path="/priority-calls" element={
+                <RoleBasedRoute allowedRoles={['caller']}>
+                  <PriorityCalls />
+                </RoleBasedRoute>
+              } />
+              <Route path="/escalations" element={
+                <RoleBasedRoute allowedRoles={['caller']}>
+                  <Escalations />
+                </RoleBasedRoute>
+              } />
 
               {/* Email Team-Only Routes - Email team specific features */}
               <Route path="/templates" element={

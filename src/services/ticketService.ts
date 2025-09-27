@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, doc, getDoc, getDocs, query, where, orderBy, limit, Timestamp, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDoc, getDocs, query, where, orderBy, limit, Timestamp, onSnapshot, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebaseConfig';
 import { Ticket, ProactiveAlert, ChatSession, TeamMember } from '../types';
 
@@ -23,6 +23,24 @@ export class TicketService {
         } catch (error) {
             console.error('Error creating ticket:', error);
             throw new Error('Failed to create ticket');
+        }
+    }
+
+    /**
+     * Seed a ticket with a specific ID (for initial data setup)
+     */
+    static async seedTicket(ticket: Ticket): Promise<void> {
+        try {
+            const docRef = doc(db, this.COLLECTION_NAME, ticket.id);
+            const ticketData = {
+                ...ticket,
+                createdAt: Timestamp.fromDate(new Date(ticket.createdAt)),
+                updatedAt: Timestamp.fromDate(new Date(ticket.updatedAt)),
+            };
+            await setDoc(docRef, ticketData);
+        } catch (error) {
+            console.error('Error seeding ticket:', error);
+            throw new Error('Failed to seed ticket');
         }
     }
 
@@ -343,6 +361,88 @@ export class TicketService {
             callback(teamMembers);
         }, (error) => {
             console.error('Error listening to team members:', error);
+        });
+
+        return unsubscribe;
+    }
+
+    /**
+     * Listen to real-time active tickets count
+     */
+    static listenToActiveTicketsCount(callback: (count: number) => void): () => void {
+        const q = query(
+            collection(db, this.COLLECTION_NAME),
+            where('status', 'in', ['open', 'in_progress'])
+        );
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            callback(querySnapshot.size);
+        }, (error) => {
+            console.error('Error listening to active tickets count:', error);
+        });
+
+        return unsubscribe;
+    }
+
+    /**
+     * Calculate average response time from resolved tickets
+     */
+    static async getAverageResponseTime(): Promise<number> {
+        try {
+            const q = query(
+                collection(db, this.COLLECTION_NAME),
+                where('status', 'in', ['resolved', 'closed']),
+                orderBy('updatedAt', 'desc'),
+                limit(100) // Look at last 100 resolved tickets for average
+            );
+
+            const querySnapshot = await getDocs(q);
+            const tickets = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Ticket));
+
+            if (tickets.length === 0) {
+                return 0;
+            }
+
+            // Calculate response time for each ticket (time between creation and resolution)
+            const responseTimes = tickets.map(ticket => {
+                const createdAt = new Date(ticket.createdAt).getTime();
+                const resolvedAt = new Date(ticket.updatedAt).getTime();
+                const responseTimeMs = resolvedAt - createdAt;
+
+                // Convert to minutes
+                return Math.max(0, responseTimeMs / (1000 * 60));
+            });
+
+            // Calculate average response time
+            const totalResponseTime = responseTimes.reduce((sum, time) => sum + time, 0);
+            return totalResponseTime / responseTimes.length;
+        } catch (error) {
+            console.error('Error calculating average response time:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * Listen to real-time ticket updates
+     */
+    static listenToTickets(callback: (tickets: Ticket[]) => void): () => void {
+        const q = query(
+            collection(db, this.COLLECTION_NAME),
+            orderBy('updatedAt', 'desc'),
+            limit(200)
+        );
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const tickets = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Ticket));
+            callback(tickets);
+        }, (error) => {
+            console.error('Error listening to tickets:', error);
         });
 
         return unsubscribe;

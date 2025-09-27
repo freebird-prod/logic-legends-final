@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Phone, Mail, Clock, CheckCircle, AlertCircle, Plus, CreditCard as Edit, Trash2, Loader2 } from 'lucide-react';
+import { Users, Phone, Mail, Clock, CheckCircle, Plus, CreditCard as Edit, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TeamMember } from '../../types';
 import { TicketService } from '../../services/ticketService';
@@ -7,6 +7,7 @@ import { TicketService } from '../../services/ticketService';
 export const TeamManagement: React.FC = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [averageResponseTime, setAverageResponseTime] = useState(0);
   const [showAddMember, setShowAddMember] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [newMember, setNewMember] = useState({
@@ -15,7 +16,7 @@ export const TeamManagement: React.FC = () => {
     role: 'caller' as 'caller' | 'email_team',
   });
 
-  // Set up real-time listener for team members
+  // Set up real-time listener for team members and calculate average response time
   useEffect(() => {
     setLoading(true);
     const unsubscribe = TicketService.listenToTeamMembers((members) => {
@@ -23,7 +24,29 @@ export const TeamManagement: React.FC = () => {
       setLoading(false);
     });
 
-    return unsubscribe;
+    // Calculate average response time
+    const calculateAvgResponseTime = async () => {
+      try {
+        const avgTime = await TicketService.getAverageResponseTime();
+        setAverageResponseTime(avgTime);
+      } catch (error) {
+        console.error('Error calculating average response time:', error);
+        setAverageResponseTime(0);
+      }
+    };
+
+    calculateAvgResponseTime();
+
+    // Listen for ticket changes to recalculate average response time
+    const unsubscribeTickets = TicketService.listenToTickets(() => {
+      // Recalculate when tickets change (especially when status changes to resolved/closed)
+      calculateAvgResponseTime();
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeTickets();
+    };
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -95,8 +118,7 @@ export const TeamManagement: React.FC = () => {
   const teamStats = {
     totalMembers: teamMembers.length,
     onlineMembers: teamMembers.filter(m => m.status === 'online').length,
-    totalActiveTickets: teamMembers.reduce((sum, m) => sum + m.activeTickets, 0),
-    avgResponseTime: teamMembers.reduce((sum, m) => sum + m.avgResponseTime, 0) / teamMembers.length,
+    avgResponseTime: averageResponseTime,
   };
 
   return (
@@ -118,7 +140,7 @@ export const TeamManagement: React.FC = () => {
       </div>
 
       {/* Team Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -139,18 +161,6 @@ export const TeamManagement: React.FC = () => {
             <div>
               <div className="text-2xl font-bold text-gray-900">{teamStats.onlineMembers}</div>
               <div className="text-sm text-gray-600">Online Now</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <AlertCircle className="h-6 w-6 text-orange-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">{teamStats.totalActiveTickets}</div>
-              <div className="text-sm text-gray-600">Active Tickets</div>
             </div>
           </div>
         </div>
