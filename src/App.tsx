@@ -71,9 +71,6 @@ const NavigationSidebar: React.FC = () => {
       return [
         ...commonItems.slice(0, 1),
         { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
-        { id: 'tickets', label: 'All Tickets', icon: MessageCircle, path: '/tickets' },
-        { id: 'calls', label: 'Call Management', icon: Phone, path: '/calls' },
-        { id: 'emails', label: 'Email Queue', icon: Mail, path: '/emails' },
         { id: 'chatbot', label: 'AI Chatbot', icon: Bot, path: '/chatbot' },
         { id: 'waste-analytics', label: 'Waste Analytics', icon: TrendingUp, path: '/waste-analytics' },
         { id: 'proactive-alerts', label: 'Proactive Alerts', icon: AlertTriangle, path: '/proactive-alerts' },
@@ -163,7 +160,7 @@ const NavigationSidebar: React.FC = () => {
           <button
             onClick={logout}
             disabled={isLoggingOut}
-            className="w-full pb-[6rem] text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+            className="w-full text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
           >
             {isLoggingOut ? (
               <>
@@ -171,9 +168,9 @@ const NavigationSidebar: React.FC = () => {
                 <span>Signing Out...</span>
               </>
             ) : (
-              <div className='px-2 py-1 bg-red-600 flex items-center gap-2.5 text-white rounded-xl w-xl justify-center '>
+              <div className='px-2 py-1 bg-red-600 flex items-center gap-2.5 hover:bg-red-500 text-white rounded-xl w-full justify-center '>
                 <LogOut className="w-4 h-4" />
-                  <span className='font-semibold text-base'>Sign Out</span>
+                <span className='font-medium text-base'>Sign Out</span>
               </div>
             )}
           </button>
@@ -249,7 +246,7 @@ const AppContent: React.FC = () => {
         <div className="bg-white shadow-sm border-b border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <h1 className="flex items-center gap-3 text-xl font-bold text-gray-900">
-              <Users className='p-1 rounded-lg bg-slate-400 w-9 h-9'/>
+              <Users className='p-1 rounded-lg bg-slate-400 w-9 h-9' />
               Customer Support Portal
             </h1>
             <button
@@ -332,21 +329,6 @@ const AppContent: React.FC = () => {
                   <EnhancedAnalytics />
                 </RoleBasedRoute>
               } />
-              <Route path="/tickets" element={
-                <RoleBasedRoute allowedRoles={['admin']}>
-                  <TicketList title="All Tickets" tickets={tickets} />
-                </RoleBasedRoute>
-              } />
-              <Route path="/calls" element={
-                <RoleBasedRoute allowedRoles={['admin']}>
-                  <TicketList title="Call Management" tickets={tickets.filter(t => t.source === 'call')} />
-                </RoleBasedRoute>
-              } />
-              <Route path="/emails" element={
-                <RoleBasedRoute allowedRoles={['admin']}>
-                  <TicketList title="Email Queue" tickets={tickets.filter(t => t.source === 'email')} />
-                </RoleBasedRoute>
-              } />
               <Route path="/chatbot" element={
                 <RoleBasedRoute allowedRoles={['admin']}>
                   <div className="space-y-6">
@@ -372,28 +354,8 @@ const AppContent: React.FC = () => {
               } />
 
               {/* Caller-Only Routes - Call team specific features */}
-              <Route path="/priority-calls" element={
-                <RoleBasedRoute allowedRoles={['caller']}>
-                  <TicketList title="Priority Calls" tickets={tickets.filter(t => t.priority === 'priority')} />
-                </RoleBasedRoute>
-              } />
-              <Route path="/escalations" element={
-                <RoleBasedRoute allowedRoles={['caller']}>
-                  <TicketList title="Escalations" tickets={tickets.filter(t => t.sentiment === 'frustrated' || t.sentiment === 'angry')} />
-                </RoleBasedRoute>
-              } />
 
               {/* Email Team-Only Routes - Email team specific features */}
-              <Route path="/email-queue" element={
-                <RoleBasedRoute allowedRoles={['email_team']}>
-                  <TicketList title="Email Queue" tickets={tickets.filter(t => t.source === 'email')} />
-                </RoleBasedRoute>
-              } />
-              <Route path="/moderate-tickets" element={
-                <RoleBasedRoute allowedRoles={['email_team']}>
-                  <TicketList title="Moderate Tickets" tickets={tickets.filter(t => t.priority === 'moderate')} />
-                </RoleBasedRoute>
-              } />
               <Route path="/templates" element={
                 <RoleBasedRoute allowedRoles={['email_team']}>
                   <EmailTemplates />
