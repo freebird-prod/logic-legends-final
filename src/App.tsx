@@ -105,7 +105,7 @@ const NavigationSidebar: React.FC = () => {
   };
 
   return (
-    <div className="hidden lg:flex lg:w-1/4 xl:w-1/5 relative overflow-hidden bg-white border-r border-gray-200">
+    <div className="hidden lg:flex lg:w-1/4 xl:w-1/5 select-none relative overflow-hidden bg-white border-r border-gray-200">
       {/* Navigation Content */}
       <div className="relative flex flex-col h-full w-full">
         {/* Logo/Brand */}
@@ -171,9 +171,9 @@ const NavigationSidebar: React.FC = () => {
                 <span>Signing Out...</span>
               </>
             ) : (
-              <div className='px-2 py-1 bg-red-600 flex items-center gap-2.5 text-white rounded-xl w-xl justify-center font-semibold text-sm'>
+              <div className='px-2 py-1 bg-red-600 flex items-center gap-2.5 text-white rounded-xl w-xl justify-center '>
                 <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                  <span className='font-semibold text-base'>Sign Out</span>
               </div>
             )}
           </button>
@@ -248,7 +248,10 @@ const AppContent: React.FC = () => {
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white shadow-sm border-b border-gray-200 p-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">Customer Support Portal</h1>
+            <h1 className="flex items-center gap-3 text-xl font-bold text-gray-900">
+              <Users className='p-1 rounded-lg bg-slate-400 w-9 h-9'/>
+              Customer Support Portal
+            </h1>
             <button
               onClick={logout}
               disabled={isLoggingOut}
@@ -260,7 +263,9 @@ const AppContent: React.FC = () => {
                   <span>Signing Out...</span>
                 </>
               ) : (
-                <span>Sign Out</span>
+                <div className='py-2 px-3 bg-red-500 rounded-xl text-white hover:scale-105 transition-all duration-300'>
+                  <span>Sign Out</span>
+                </div>
               )}
             </button>
           </div>
