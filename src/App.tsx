@@ -149,21 +149,21 @@ const NavigationSidebar: React.FC = () => {
 
         {/* User Info */}
         <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center mb-3 space-x-3 p-3 rounded-xl bg-gray-50">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-medium text-white">
+          <div className="flex items-center mb-2 space-x-3 p-3 rounded-xl bg-gray-50">
+            <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-medium text-white">
               {(user?.name?.charAt(0)?.toUpperCase()) || (user?.email?.charAt(0)?.toUpperCase()) || 'U'}
             </div>
-            <div className="flex-col">
-              <p className="text-base font-medium text-gray-900 truncate">
+            <div className="flex-col items-center justify-center">
+              <p className="text-sm font-medium text-gray-900 truncate">
                 {user?.name || user?.email?.split('@')[0] || 'User'}
               </p>
-              <p className="text-sm text-gray-600 capitalize">{user?.role?.replace('_', ' ')}</p>
+              <p className="text-xs text-gray-600 capitalize">{user?.role?.replace('_', ' ')}</p>
             </div>
           </div>
           <button
             onClick={logout}
             disabled={isLoggingOut}
-            className="w-full mb-[7rem] text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+            className="w-full pb-[6rem] text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
           >
             {isLoggingOut ? (
               <>
@@ -171,7 +171,7 @@ const NavigationSidebar: React.FC = () => {
                 <span>Signing Out...</span>
               </>
             ) : (
-              <div className='px-3 py-2 bg-red-600 flex items-center gap-2.5 text-white rounded-xl w-full justify-center font-semibold text-base'>
+              <div className='px-2 py-1 bg-red-600 flex items-center gap-2.5 text-white rounded-xl w-xl justify-center font-semibold text-sm'>
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
               </div>
