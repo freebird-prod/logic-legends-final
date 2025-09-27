@@ -1,11 +1,21 @@
 import os
 import sys
+import time
+import requests
 from typing import List
-import google.generativeai as genai
-import requests 
+from datetime import datetime
+import json
+
+# LangChain/Agent Imports
+from langchain.agents import Tool, initialize_agent
+from langchain.memory import ConversationBufferMemory
+from langchain.llms.base import LLM
+from langchain.schema import LLMResult
+from pydantic import BaseModel, Field
+
+# Flask Imports
 from flask import Flask, request, jsonify
 from flask_cors import CORS 
-from datetime import datetime
 
 # ----------------------------------------------------
 # 1. Configuration & Setup
@@ -13,80 +23,58 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app) 
 
-# --- Gemini AI Configuration ---
-# 🚨 WARNING: HARDCODING KEY FOR TESTING. Use environment variables in production.
-API_KEY = "AIzaSyDBp7egsp8Jl7mv4U2EVIoVjg44LYwtEWY" 
-if not API_KEY: # This check is now redundant but kept for structure
-    print("Error: API Key is missing.")
+# --- Gemini API Key ---
+# 🚨 IMPORTANT: Replace this placeholder with your actual key or use environment variable.
+# Using a placeholder here based on the agent code, but environment variable is BEST.
+API_KEY = os.environ.get("GOOGLE_API_KEY", "AIzaSyCM-H7eKRrEy5yJhBLtiNhHp6g7jfo40bc") 
+if not API_KEY:
+    print("Error: The GOOGLE_API_KEY environment variable is not set.")
     sys.exit(1)
-genai.configure(api_key=API_KEY)
 
-# --- n8n Webhook Configuration ---
+# --- n8n Webhook Configuration (Proxy Target) ---
 N8N_WEBHOOK_URL = os.environ.get(
     "N8N_WEBHOOK_URL",
-    "http://localhost:5678/webhook/your_unique_n8n_path_here" 
+    "http://localhost:5678/webhook/your_unique_n8n_path_here" # REPLACE THIS URL
 )
 
-# --- In-memory ticket storage ---
+# --- In-memory Data (from snippets 1 & 3) ---
 tickets = []
 ticket_id_counter = 1
-past_complaints = [
-    "Payment deducted but subscription not activated",
-    "App crashes when opening dashboard",
-    "My account was charged twice for the same month.",
-]
 
 
 # ----------------------------------------------------
-# 2. Helper Functions (Gemini & n8n Proxy)
+# 2. Agent Helper Functions (LangChain Wrapper & Tools)
 # ----------------------------------------------------
-# (NO CHANGES HERE - functions remain the same)
-def call_gemini(prompt: str) -> str:
-    """Calls the Gemini API (Core AI Logic)."""
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
-        generation_config = genai.types.GenerationConfig(temperature=0)
-        response = model.generate_content(prompt, generation_config=generation_config)
-        return response.text.strip() if response.parts else "Could not generate a response."
-    except Exception as e:
-        print(f"An API error occurred: {e}")
-        return "An error occurred while communicating with the AI model."
 
-def is_duplicate(new_complaint: str, past: List[str]) -> bool:
-    """Checks for semantic duplicates using Gemini."""
-    prompt = f"""
-Analyze if the 'New Complaint' describes the same core issue as any of the 'Past Complaints'.
-Past Complaints: {past}
-New Complaint: "{new_complaint}"
-Is the new complaint a duplicate? Answer only with 'Yes' or 'No'.
-"""
-    return call_gemini(prompt).lower() == "yes"
+# --- A. Gemini LLM Wrapper (From agentic_support.py) ---
+class GeminiLLM(LLM, BaseModel):
+    api_key: str = Field(API_KEY, description="Your Gemini API key")
 
-def classify_priority(complaint: str) -> str:
-    """Classifies priority using Gemini."""
-    prompt = f"Classify the priority of this complaint as 'High' or 'Moderate'. Answer only with the single word 'High' or 'Moderate'. Complaint: \"{complaint}\""
-    return call_gemini(prompt)
+    @property
+    def _llm_type(self) -> str:
+        return "gemini"
 
-def categorize_issue(complaint: str) -> str:
-    """Categorizes issue using Gemini."""
-    prompt = f"Categorize this complaint into one of the following types: Billing, Technical Issue, Product Query, or Feedback. Answer only with one of these four options. Complaint: \"{complaint}\""
-    return call_gemini(prompt)
+    def _call(self, prompt: str, stop=None) -> str:
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        headers = {"Content-Type": "application/json", "X-goog-api-key": self.api_key}
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        
+        # Reduced retry logic for clean integration
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+            # Simplified parsing
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except Exception as e:
+            print(f"Gemini API call failed: {e}")
+            return "API_ERROR"
 
-def process_complaint(complaint: str):
-    """The core AI processing pipeline."""
-    if is_duplicate(complaint, past_complaints):
-        return {"status": "duplicate", "message": "Duplicate complaint detected."}
+    def _generate(self, prompts, stop=None):
+        texts = [self._call(prompt, stop=stop) for prompt in prompts]
+        return LLMResult(generations=[[{"text": t}] for t in texts])
 
-    priority = classify_priority(complaint)
-    category = categorize_issue(complaint)
-    
-    past_complaints.append(complaint)
-
-    return {
-        "status": "processed",
-        "priority": priority,
-        "category": category
-    }
+# --- B. Tools (Modified to use n8n proxy logic) ---
 
 def trigger_n8n_workflow(data: dict):
     """Sends a POST request to the n8n Webhook URL (The Proxy)."""
@@ -99,10 +87,74 @@ def trigger_n8n_workflow(data: dict):
         print(f"Error communicating with n8n: {e}")
         return {"error": "Failed to trigger n8n workflow", "details": str(e)}, 503
 
+def send_email_action(email: str, subject: str, body: str) -> str:
+    """Sends an email to a customer (Moderate Priority) via n8n."""
+    payload = {"type": "email_moderate", "email": email, "subject": subject, "body": body}
+    resp, status = trigger_n8n_workflow(payload)
+    if status < 400:
+        return f"ACTION_TAKEN: Email to {email} successfully triggered via n8n."
+    return f"ACTION_FAILED: Email to {email} FAILED: {resp.get('error', 'n8n error')}"
+
+def escalate_to_call_action(ticket_id: str, reason: str) -> str:
+    """Immediately escalates a ticket for a live agent phone call (High Priority) via n8n."""
+    payload = {"type": "call_high", "ticket_id": ticket_id, "reason": reason}
+    resp, status = trigger_n8n_workflow(payload)
+    if status < 400:
+        return f"ACTION_TAKEN: Ticket {ticket_id} escalated for call successfully triggered via n8n."
+    return f"ACTION_FAILED: Call escalation for {ticket_id} FAILED: {resp.get('error', 'n8n error')}"
+
+def classify_priority_tool(query: str) -> str:
+    """Tool to determine the priority (High, Moderate, Normal) of the customer query."""
+    classification_llm = GeminiLLM(api_key=API_KEY)
+    classification_prompt = f"""
+    Analyze the following customer query and classify its priority.
+    - 'High': Critical issues.
+    - 'Moderate': Non-critical issues.
+    - 'Normal': Simple questions.
+    QUERY: "{query}"
+    Respond ONLY with the single word: High, Moderate, or Normal.
+    """
+    priority_result = classification_llm._call(classification_prompt)
+    priority = priority_result.strip().lower().capitalize()
+    return priority if priority in ['High', 'Moderate', 'Normal'] else 'Normal' 
+
+tools = [
+    Tool(
+        name="Priority Classifier",
+        func=classify_priority_tool,
+        description="ALWAYS use this tool FIRST to determine the priority (High, Moderate, Normal) of the customer's request. Input is the full customer query."
+    ),
+    Tool(
+        name="Send Email",
+        func=send_email_action,
+        description="Use this to send a non-urgent email reply to a customer (Moderate Priority). Requires email, subject, and body."
+    ),
+    Tool(
+        name="Escalate to Call",
+        func=escalate_to_call_action,
+        description="Use this to escalate a critical issue for an immediate phone call (High Priority). Requires ticket_id and reason."
+    )
+]
+
+# --- C. Initialize Agent ---
+gemini_llm = GeminiLLM(api_key=API_KEY)
+memory = ConversationBufferMemory(memory_key="chat_history")
+agent = initialize_agent(
+    tools=tools,
+    llm=gemini_llm,
+    agent="zero-shot-react-description",
+    memory=memory,
+    max_iterations=5, 
+    verbose=True,
+    handle_parsing_errors=True
+)
+
 # ----------------------------------------------------
 # 3. Flask Routes (Unified API Gateway)
 # ----------------------------------------------------
-# (NO CHANGES HERE - routes remain the same)
+
+# --- A. Core Application Logic (Tickets, Health Check) ---
+
 @app.route("/", methods=["GET"])
 def home():
     """Health check route."""
@@ -110,12 +162,12 @@ def home():
 
 @app.route("/tickets", methods=["GET"])
 def get_tickets():
-    """GET all tickets (example of core data route)."""
+    """GET all tickets."""
     return jsonify(tickets), 200
 
 @app.route("/tickets", methods=["POST"])
 def create_ticket():
-    """POST a new ticket (example of core data route)."""
+    """POST a new ticket."""
     global ticket_id_counter
     data = request.json
     if not data.get("title"):
@@ -131,40 +183,52 @@ def create_ticket():
 
     return jsonify(new_ticket), 201
 
-@app.route('/handle_complaint', methods=['POST'])
-def handle_complaint_route():
-    """
-    Frontend calls this route.
-    Flask executes Gemini AI logic, then conditionally routes to n8n if needed.
-    """
+# --- B. LangChain Agent Route ---
+
+@app.route('/api/agent_route', methods=['POST'])
+def run_agent_route():
+    """Frontend calls this to run the full priority-based agent."""
     data = request.json
-    if not data or 'complaint' not in data:
-        return jsonify({"error": "Request body must contain 'complaint'"}), 400
+    required_fields = ['customer_email', 'ticket_id', 'query']
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": f"Missing one of the required fields: {required_fields}"}), 400
 
-    complaint_text = data['complaint']
-    result = process_complaint(complaint_text)
+    customer_email = data['customer_email']
+    ticket_id = data['ticket_id']
+    customer_query = data['query']
 
-    if result.get('status') == 'processed' and result.get('priority', '').lower() == 'high':
-        print("🚨 High Priority detected. Triggering n8n for agent escalation.")
-        
-        n8n_payload = {
-            "source": "AI Escalation",
-            "complaint": complaint_text,
-            "category": result.get("category")
-        }
-        
-        n8n_resp, n8n_status = trigger_n8n_workflow(n8n_payload)
-        
-        result["escalation_status"] = "N8N Triggered" if n8n_status < 400 else "N8N Failed"
-        result["n8n_response"] = n8n_resp
+    # --- Construct the Agent Prompt ---
+    # This guides the agent to use the classification tool first, then act.
+    full_prompt = f"""
+    TICKET_ID: {ticket_id}
+    CUSTOMER_EMAIL: {customer_email}
+    
+    Customer Query: {customer_query}
+    
+    INSTRUCTIONS: 
+    1. FIRST, use the 'Priority Classifier' tool to classify the Customer Query as High, Moderate, or Normal.
+    2. Based on the classification:
+       - If 'High', use the 'Escalate to Call' tool with the TICKET_ID and a brief REASON.
+       - If 'Moderate', use the 'Send Email' tool. The subject should be a summary of the issue, and the body should be an empathetic, helpful response.
+       - If 'Normal', skip all tools and formulate a helpful final answer (this is the 'Chat' reply).
+    """
 
-    return jsonify(result)
+    print(f"\n--- Running Agent for Ticket {ticket_id} ---")
+    try:
+        agent_result = agent.run(full_prompt)
+    except Exception as e:
+        print(f"Agent failed to run: {e}")
+        return jsonify({"error": "Agent execution failed", "details": str(e)}), 500
+
+    # The agent's result is either the final chat message or the action confirmation.
+    return jsonify({"status": "Success", "agent_response": agent_result}), 200
+
+
+# --- C. Direct Orchestration Proxy (from snippet 2) ---
 
 @app.route('/api/start_orchestration', methods=['POST'])
 def start_orchestration():
-    """
-    Frontend calls this route to trigger an n8n workflow directly, bypassing AI logic.
-    """
+    """Frontend calls this to trigger an n8n workflow directly."""
     try:
         input_data = request.get_json()
     except Exception:
@@ -173,6 +237,7 @@ def start_orchestration():
     if not input_data:
         return jsonify({"error": "Missing data in request body"}), 400
 
+    # Use the n8n proxy function
     n8n_response, status_code = trigger_n8n_workflow(input_data)
     
     if status_code >= 400:
