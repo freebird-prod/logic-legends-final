@@ -72,14 +72,20 @@ export const Login: React.FC = () => {
       if (success) {
         setIsSignup(false);
         setFullName('');
-        navigate('/dashboard');
+        // Small delay to ensure auth state has propagated
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 100);
       }
       return;
     }
 
     const success = await login(email, password, role);
     if (success) {
-      navigate('/dashboard');
+      // Small delay to ensure auth state has propagated
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
     }
   };
 
