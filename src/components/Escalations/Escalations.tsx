@@ -8,30 +8,25 @@ export const Escalations: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchEscalatedTickets = async () => {
-            try {
-                // Get priority tickets and moderate tickets that might need escalation
-                const [priorityTickets, moderateTickets] = await Promise.all([
-                    TicketService.getTicketsByPriority('priority', 50),
-                    TicketService.getTicketsByPriority('moderate', 50)
-                ]);
-
-                const allTickets = [...priorityTickets, ...moderateTickets];
-                // Filter for tickets that are escalated (we'll consider priority tickets or those with sentiment issues)
-                const escalated = allTickets.filter((ticket: Ticket) =>
+        // Set up real-time listener for tickets
+        const unsubscribe = TicketService.listenToTickets((allTickets) => {
+            // Filter for call-based tickets that are escalated
+            const callEscalations = allTickets.filter((ticket: Ticket) =>
+                ticket.source === 'call' &&
+                (
                     ticket.priority === 'priority' ||
                     ticket.sentiment === 'angry' ||
-                    ticket.sentiment === 'frustrated'
-                );
-                setEscalatedTickets(escalated);
-            } catch (error) {
-                console.error('Error fetching escalated tickets:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+                    ticket.sentiment === 'frustrated' ||
+                    ticket.status === 'open' ||
+                    ticket.status === 'in_progress'
+                )
+            );
+            setEscalatedTickets(callEscalations);
+            setLoading(false);
+        });
 
-        fetchEscalatedTickets();
+        // Cleanup listener on unmount
+        return unsubscribe;
     }, []);
 
     const handleEscalationResolved = async (ticketId: string) => {
@@ -44,10 +39,10 @@ export const Escalations: React.FC = () => {
     };
 
     const getEscalationReason = (ticket: Ticket) => {
-        if (ticket.priority === 'priority') return 'High Priority';
-        if (ticket.sentiment === 'angry') return 'Customer Anger';
-        if (ticket.sentiment === 'frustrated') return 'Customer Frustration';
-        return 'Requires Attention';
+        if (ticket.priority === 'priority') return 'Priority Call';
+        if (ticket.sentiment === 'angry') return 'Angry Caller';
+        if (ticket.sentiment === 'frustrated') return 'Frustrated Caller';
+        return 'Call Escalation';
     };
 
     const getSeverityColor = (ticket: Ticket) => {
@@ -67,9 +62,9 @@ export const Escalations: React.FC = () => {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Ticket Escalations</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Call Escalations</h2>
                 <p className="text-gray-600">
-                    High-priority tickets and customer issues requiring immediate escalation and attention.
+                    High-priority call-based customer issues requiring immediate escalation and attention.
                 </p>
             </div>
 
@@ -120,13 +115,13 @@ export const Escalations: React.FC = () => {
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="p-6 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Escalated Tickets</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Escalated Call Tickets</h3>
                 </div>
                 <div className="divide-y divide-gray-200">
                     {escalatedTickets.length === 0 ? (
                         <div className="p-6 text-center text-gray-500">
                             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                            <p>No escalated tickets at this time</p>
+                            <p>No escalated call tickets at this time</p>
                         </div>
                     ) : (
                         escalatedTickets.map((ticket) => (
