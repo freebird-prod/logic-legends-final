@@ -8,8 +8,6 @@ import {
   Target,
   AlertTriangle,
   CheckCircle,
-  Clock,
-  Users
 } from 'lucide-react';
 import { MetricCard } from '../Dashboard/MetricCard';
 import { mockAnalytics, mockProactiveAlerts } from '../../data/mockAnalytics';

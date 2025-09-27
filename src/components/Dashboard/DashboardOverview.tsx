@@ -56,7 +56,7 @@ export const DashboardOverview: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg overflow-hidden">
+      <div className="relative bg-gradient-to-r from-blue-800 to-green-600 rounded-lg overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center opacity-20 bg-white"
         ></div>
@@ -64,7 +64,7 @@ export const DashboardOverview: React.FC = () => {
           <h1 className="text-3xl font-bold mb-2">
             Welcome back, {user?.name}
           </h1>
-          <p className="text-lg opacity-90">
+          <p className="text-base text-gray-300">
             Here's what's happening with your support system today.
           </p>
         </div>

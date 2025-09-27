@@ -51,30 +51,15 @@ export const Login: React.FC = () => {
     { value: 'customer', label: 'Customer Portal', icon: User, desc: 'Submit and track support requests' },
   ], []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email.trim() || !password.trim()) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
     if (isSignup) {
-      if (!fullName.trim()) {
-        toast.error('Please enter your full name');
-        return;
-      }
-      if (password.length < 6) {
-        toast.error('Password must be at least 6 characters');
-        return;
-      }
       const success = await signup(email, password, role, fullName);
       if (success) {
-        setIsSignup(false);
-        setFullName('');
         // Small delay to ensure auth state has propagated
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate(role === 'customer' ? '/' : '/dashboard');
         }, 100);
       }
       return;
@@ -84,7 +69,7 @@ export const Login: React.FC = () => {
     if (success) {
       // Small delay to ensure auth state has propagated
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(role === 'customer' ? '/' : '/dashboard');
       }, 100);
     }
   };
@@ -111,8 +96,8 @@ export const Login: React.FC = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-l-2xl"></div>
           <div className="relative z-10 flex flex-col justify-end p-8 text-white">
-            <h1 className="text-3xl font-bold">Capturing Moments, Creating Memories</h1>
-            <p className="text-base mt-2 text-gray-200">Powered by Advanced AI Support System</p>
+            <h1 className="text-2xl font-bold">Capturing Moments, Creating Memories</h1>
+            <p className="text-base text-gray-400 mt-2">Powered by Advanced AI Support System</p>
           </div>
         </div>
 

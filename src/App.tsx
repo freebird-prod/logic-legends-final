@@ -11,6 +11,7 @@ import { SettingsPage } from './components/Settings/SettingsPage';
 import { CustomerPortal } from './components/Customer/CustomerPortal';
 import { EnhancedAnalytics } from './components/Analytics/EnhancedAnalytics';
 import { TeamManagement } from './components/TeamManagement/TeamManagement';
+import { EmailTemplates } from './components/EmailTemplates/EmailTemplates';
 import {
   Home,
   MessageCircle,
@@ -377,12 +378,7 @@ const AppContent: React.FC = () => {
               } />
               <Route path="/templates" element={
                 <RoleBasedRoute allowedRoles={['email_team']}>
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Email Templates</h2>
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                      <p className="text-gray-600">Email template management coming soon...</p>
-                    </div>
-                  </div>
+                  <EmailTemplates />
                 </RoleBasedRoute>
               } />
 

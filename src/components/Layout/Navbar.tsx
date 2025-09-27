@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Home,
   MessageCircle,
@@ -10,7 +10,8 @@ import {
   Bot,
   AlertTriangle,
   TrendingUp,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -20,7 +21,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [showLogout, setShowLogout] = useState(false);
 
   const getNavItems = () => {
     const commonItems = [
@@ -70,42 +72,73 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   const navItems = getNavItems();
 
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
-    <nav className="bg-gray-900 text-white w-64 min-h-screen flex flex-col relative overflow-y-auto">
+    <nav className="bg-gray-900 text-white w-64 min-h-screen flex flex-col relative">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-10"
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')" }}
       ></div>
-      <div className="relative z-10 p-4">
+
+      {/* Header Section */}
+      <div className="relative z-10 p-4 flex-shrink-0">
         <div className="flex items-center space-x-3 mb-6">
           <Bot className="h-8 w-8 text-blue-400" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold">AI Support</h1>
-            <p className="text-xs text-gray-400 capitalize">{user?.role?.replace('_', ' ')} Portal</p>
+            <div
+              className="relative"
+              onMouseEnter={() => setShowLogout(true)}
+              onMouseLeave={() => setShowLogout(false)}
+            >
+              {/* <p className="text-xs text-gray-400 capitalize cursor-pointer">
+                {user?.role?.replace('_', ' ')} Portal
+              </p> */}
+              {showLogout && (
+                <button
+                  onClick={handleLogout}
+                  className="absolute top-0 left-0 right-0 bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition-colors flex items-center space-x-1"
+                >
+                  <LogOut className="h-3 w-3" />
+                  <span>Logout</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 px-4">
-        <ul className="space-y-2">
+      {/* Navigation Section */}
+      <div className="flex-1 px-4 pb-4 overflow-y-auto">
+        <ul className="space-y-1">
           {navItems.map((item) => {
             const IconComponent = item.icon;
             return (
               <li key={item.id}>
                 <button
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTab === item.id
-                    ? 'bg-blue-600 text-white'
+                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-colors ${activeTab === item.id
+                    ? 'bg-blue-600 text-white shadow-lg'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }`}
                 >
-                  <IconComponent className="h-5 w-5" />
-                  <span className="text-sm font-medium">{item.label}</span>
+                  <IconComponent className="h-5 w-5flex-shrink-0" />
+                  <span className="text-sm font-medium truncate">{item.label}</span>
                 </button>
               </li>
             );
           })}
         </ul>
+      </div>
+
+      {/* Footer Section (Optional) */}
+      <div className="relative z-10 p-4 border-t border-gray-800 flex-shrink-0">
+        <div className="text-xs text-gray-500 text-center">
+          AI Support System v2.0
+        </div>
       </div>
     </nav>
   );
