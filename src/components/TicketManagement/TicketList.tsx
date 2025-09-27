@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, AlertCircle, Phone, Mail, MessageSquare, Bot, Loader2, RefreshCw } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Ticket } from '../../types';
 import { TicketService } from '../../services/ticketService';
 
@@ -22,7 +23,6 @@ export const TicketList: React.FC<TicketListProps> = ({
 }) => {
     const [tickets, setTickets] = useState<Ticket[]>(propTickets);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [resolvingTicketId, setResolvingTicketId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -31,12 +31,11 @@ export const TicketList: React.FC<TicketListProps> = ({
     // Fetch tickets from Firebase
     const fetchTickets = async () => {
         setLoading(true);
-        setError(null);
         try {
             const fetchedTickets = await TicketService.getRecentTickets(50);
             setTickets(fetchedTickets);
         } catch (err) {
-            setError('Failed to load tickets. Please try again.');
+            toast.error('Failed to load tickets. Please try again.');
             console.error('Error fetching tickets:', err);
         } finally {
             setLoading(false);
@@ -48,11 +47,12 @@ export const TicketList: React.FC<TicketListProps> = ({
         setResolvingTicketId(ticket.id);
         try {
             await TicketService.updateTicket(ticket.id, { status: 'resolved' });
+            toast.success('Ticket resolved successfully!');
             // Refresh the tickets list
             await fetchTickets();
         } catch (err) {
             console.error('Error resolving ticket:', err);
-            setError('Failed to resolve ticket. Please try again.');
+            toast.error('Failed to resolve ticket. Please try again.');
         } finally {
             setResolvingTicketId(null);
         }
@@ -195,17 +195,6 @@ export const TicketList: React.FC<TicketListProps> = ({
                             <Loader2 className="h-8 w-8 text-blue-600 mx-auto mb-4 animate-spin" />
                             <p className="text-gray-600">Loading tickets...</p>
                         </div>
-                    ) : error ? (
-                        <div className="text-center py-12">
-                            <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
-                            <p className="text-red-600 mb-4">{error}</p>
-                            <button
-                                onClick={fetchTickets}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                            >
-                                Try Again
-                            </button>
-                        </div>
                     ) : (
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
@@ -295,7 +284,7 @@ export const TicketList: React.FC<TicketListProps> = ({
                         </table>
                     )}
 
-                    {!loading && !error && filteredTickets.length === 0 && (
+                    {!loading && filteredTickets.length === 0 && (
                         <div className="text-center py-12">
                             <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                             <p className="text-gray-600">No tickets match your current filters.</p>

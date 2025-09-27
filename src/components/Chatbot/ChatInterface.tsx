@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, ThumbsUp, ThumbsDown, MessageSquare, Plus, Trash } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { TicketService } from '../../services/ticketService';
 import { openRouterService } from '../../services/openRouterService';
 import { ChatMessage, ChatSession } from '../../types';
@@ -79,8 +80,10 @@ export const ChatInterface: React.FC = () => {
       if (currentChatId === chatId) {
         startNewChat();
       }
+      toast.success('Chat session deleted successfully!');
     } catch (error) {
       console.error('Error deleting chat session:', error);
+      toast.error('Failed to delete chat session. Please try again.');
     }
   };
 
@@ -173,6 +176,7 @@ export const ChatInterface: React.FC = () => {
       }
     } catch (error) {
       console.error('Error generating response:', error);
+      toast.error('Failed to generate AI response. Please try again.');
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         content: 'Sorry, I encountered an error. Please try again.',

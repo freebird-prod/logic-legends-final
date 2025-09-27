@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, CheckCircle, Bot, User, ThumbsUp, ThumbsDown, Sparkles, FileText, Zap } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Ticket, ChatMessage } from '../../types';
 import { openRouterService, ChatClassification, OpenRouterMessage } from '../../services/openRouterService';
 import { TicketService } from '../../services/ticketService';
@@ -272,7 +273,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
 
     // Check if user is authenticated
     if (!user) {
-      alert('Please log in to submit a support ticket.');
+      toast.error('Please log in to submit a support ticket.');
       return;
     }
 
@@ -314,6 +315,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
       onSubmitTicket(completeTicket);
       setIsSubmitting(false);
       setSubmitted(true);
+      toast.success('Ticket submitted successfully! Our team will get back to you soon.');
 
       // Reset form after 3 seconds
       setTimeout(() => {
@@ -325,8 +327,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
     } catch (error) {
       console.error('Error submitting ticket:', error);
       setIsSubmitting(false);
-      // You could add error state handling here
-      alert('Failed to submit ticket. Please try again.');
+      toast.error('Failed to submit ticket. Please try again.');
     }
   };
 

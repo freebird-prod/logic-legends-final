@@ -1,16 +1,37 @@
-import React, { useState } from 'react';
-import { Users, Phone, Mail, Clock, CheckCircle, AlertCircle, TrendingUp, Settings, Plus, CreditCard as Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Phone, Mail, Clock, CheckCircle, AlertCircle, Plus, CreditCard as Edit, Trash2, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { TeamMember } from '../../types';
-import { mockTeamMembers } from '../../data/mockAnalytics';
+import { TicketService } from '../../services/ticketService';
 
 export const TeamManagement: React.FC = () => {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddMember, setShowAddMember] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
   const [newMember, setNewMember] = useState({
     name: '',
     email: '',
     role: 'caller' as 'caller' | 'email_team',
   });
+
+  // Fetch team members from Firestore
+  const fetchTeamMembers = async () => {
+    setLoading(true);
+    try {
+      const members = await TicketService.getTeamMembers();
+      setTeamMembers(members);
+    } catch (err) {
+      toast.error('Failed to load team members. Please try again.');
+      console.error('Error fetching team members:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeamMembers();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -26,28 +47,56 @@ export const TeamManagement: React.FC = () => {
     return role === 'caller' ? Phone : Mail;
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (newMember.name && newMember.email) {
-      const member: TeamMember = {
-        id: Date.now().toString(),
-        ...newMember,
-        status: 'offline',
-        activeTickets: 0,
-        resolvedToday: 0,
-        avgResponseTime: 0,
-      };
-      setTeamMembers([...teamMembers, member]);
-      setNewMember({ name: '', email: '', role: 'caller' });
-      setShowAddMember(false);
+      setAddingMember(true);
+      try {
+        const memberData = {
+          name: newMember.name,
+          email: newMember.email,
+          role: newMember.role,
+          status: 'offline' as const,
+          activeTickets: 0,
+          resolvedToday: 0,
+          avgResponseTime: 0,
+        };
+
+        await TicketService.createTeamMember(memberData);
+        setNewMember({ name: '', email: '', role: 'caller' });
+        setShowAddMember(false);
+        toast.success('Team member added successfully!');
+        // Data will be updated automatically via real-time listener
+      } catch (err) {
+        console.error('Error adding team member:', err);
+        toast.error('Failed to add team member. Please try again.');
+      } finally {
+        setAddingMember(false);
+      }
     }
   };
 
-  const handleStatusChange = (memberId: string, newStatus: TeamMember['status']) => {
-    setTeamMembers(members =>
-      members.map(member =>
-        member.id === memberId ? { ...member, status: newStatus } : member
-      )
-    );
+  const handleStatusChange = async (memberId: string, newStatus: TeamMember['status']) => {
+    try {
+      await TicketService.updateTeamMember(memberId, { status: newStatus });
+      toast.success(`Member status updated to ${newStatus}!`);
+      // Data will be updated automatically via real-time listener
+    } catch (err) {
+      console.error('Error updating team member status:', err);
+      toast.error('Failed to update member status. Please try again.');
+    }
+  };
+
+  const handleDeleteMember = async (memberId: string) => {
+    if (window.confirm('Are you sure you want to delete this team member?')) {
+      try {
+        await TicketService.deleteTeamMember(memberId);
+        toast.success('Team member deleted successfully!');
+        // Data will be updated automatically via real-time listener
+      } catch (err) {
+        console.error('Error deleting team member:', err);
+        toast.error('Failed to delete team member. Please try again.');
+      }
+    }
   };
 
   const teamStats = {
@@ -131,7 +180,7 @@ export const TeamManagement: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Team Members</h3>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -192,7 +241,7 @@ export const TeamManagement: React.FC = () => {
                         <button className="text-blue-600 hover:text-blue-800">
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button className="text-red-600 hover:text-red-800">
+                        <button className="text-red-600 hover:text-red-800" onClick={() => handleDeleteMember(member.id)}>
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -210,7 +259,7 @@ export const TeamManagement: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Team Member</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -222,7 +271,7 @@ export const TeamManagement: React.FC = () => {
                   placeholder="Enter member name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
@@ -233,7 +282,7 @@ export const TeamManagement: React.FC = () => {
                   placeholder="Enter email address"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                 <select
@@ -246,13 +295,21 @@ export const TeamManagement: React.FC = () => {
                 </select>
               </div>
             </div>
-            
+
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleAddMember}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={addingMember}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                Add Member
+                {addingMember ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <span>Add Member</span>
+                )}
               </button>
               <button
                 onClick={() => setShowAddMember(false)}

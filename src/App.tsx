@@ -25,6 +25,7 @@ import {
   Users,
   LogOut
 } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 import { mockTickets } from './data/mockTickets';
 import { Ticket } from './types';
 
@@ -366,6 +367,14 @@ const AppContent: React.FC = () => {
           </div>
         </main>
       </div>
+      <Toaster position="top-right" toastOptions={{
+        style: {
+          background: '#fff',
+          color: '#000',
+          borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+        }
+      }} />
     </div>
   );
 };

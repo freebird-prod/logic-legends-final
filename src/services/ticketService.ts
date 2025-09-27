@@ -1,6 +1,6 @@
 import { collection, addDoc, updateDoc, doc, getDoc, getDocs, query, where, orderBy, limit, Timestamp, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebaseConfig';
-import { Ticket, ProactiveAlert, ChatSession } from '../types';
+import { Ticket, ProactiveAlert, ChatSession, TeamMember } from '../types';
 
 export class TicketService {
     private static readonly COLLECTION_NAME = 'tickets';
@@ -272,5 +272,79 @@ export class TicketService {
             console.error('Error deleting chat session:', error);
             throw new Error('Failed to delete chat session');
         }
+    }
+
+    /**
+     * Create a new team member
+     */
+    static async createTeamMember(teamMember: Omit<TeamMember, 'id'>): Promise<string> {
+        try {
+            const docRef = await addDoc(collection(db, 'teamMembers'), teamMember);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error creating team member:', error);
+            throw new Error('Failed to create team member');
+        }
+    }
+
+    /**
+     * Get all team members
+     */
+    static async getTeamMembers(): Promise<TeamMember[]> {
+        try {
+            const q = query(collection(db, 'teamMembers'), orderBy('name', 'asc'));
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as TeamMember));
+        } catch (error) {
+            console.error('Error getting team members:', error);
+            throw new Error('Failed to get team members');
+        }
+    }
+
+    /**
+     * Update a team member
+     */
+    static async updateTeamMember(memberId: string, updates: Partial<Omit<TeamMember, 'id'>>): Promise<void> {
+        try {
+            const docRef = doc(db, 'teamMembers', memberId);
+            await updateDoc(docRef, updates);
+        } catch (error) {
+            console.error('Error updating team member:', error);
+            throw new Error('Failed to update team member');
+        }
+    }
+
+    /**
+     * Delete a team member
+     */
+    static async deleteTeamMember(memberId: string): Promise<void> {
+        try {
+            const docRef = doc(db, 'teamMembers', memberId);
+            await deleteDoc(docRef);
+        } catch (error) {
+            console.error('Error deleting team member:', error);
+            throw new Error('Failed to delete team member');
+        }
+    }
+
+    /**
+     * Listen to real-time team members updates
+     */
+    static listenToTeamMembers(callback: (teamMembers: TeamMember[]) => void): () => void {
+        const q = query(collection(db, 'teamMembers'), orderBy('name', 'asc'));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const teamMembers = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as TeamMember));
+            callback(teamMembers);
+        }, (error) => {
+            console.error('Error listening to team members:', error);
+        });
+
+        return unsubscribe;
     }
 }
