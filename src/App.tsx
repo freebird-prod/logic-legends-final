@@ -1,0 +1,369 @@
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, NavLink } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Login } from './components/Login';
+import { DashboardOverview } from './components/Dashboard/DashboardOverview';
+import { ChatInterface } from './components/Chatbot/ChatInterface';
+import { TicketList } from './components/TicketManagement/TicketList';
+import { WasteAnalytics } from './components/Analytics/WasteAnalytics';
+import { ProactiveAlerts } from './components/ProactiveAlerts/ProactiveAlerts';
+import { SettingsPage } from './components/Settings/SettingsPage';
+import { CustomerPortal } from './components/Customer/CustomerPortal';
+import { EnhancedAnalytics } from './components/Analytics/EnhancedAnalytics';
+import { TeamManagement } from './components/TeamManagement/TeamManagement';
+import {
+  Home,
+  MessageCircle,
+  Phone,
+  Mail,
+  BarChart3,
+  Settings,
+  Library,
+  Bot,
+  AlertTriangle,
+  TrendingUp,
+  Users
+} from 'lucide-react';
+import { mockTickets } from './data/mockTickets';
+import { Ticket } from './types';
+
+// Protected Route Component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Navigation Sidebar Component
+const NavigationSidebar: React.FC = () => {
+  const { user, logout } = useAuth();
+
+  const getNavItems = () => {
+    const commonItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
+      { id: 'library', label: 'Ticket Library', icon: Library, path: '/library' },
+      { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+    ];
+
+    if (user?.role === 'admin') {
+      return [
+        ...commonItems.slice(0, 1),
+        { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
+        { id: 'tickets', label: 'All Tickets', icon: MessageCircle, path: '/tickets' },
+        { id: 'calls', label: 'Call Management', icon: Phone, path: '/calls' },
+        { id: 'emails', label: 'Email Queue', icon: Mail, path: '/emails' },
+        { id: 'chatbot', label: 'AI Chatbot', icon: Bot, path: '/chatbot' },
+        { id: 'waste-analytics', label: 'Waste Analytics', icon: TrendingUp, path: '/waste-analytics' },
+        { id: 'proactive-alerts', label: 'Proactive Alerts', icon: AlertTriangle, path: '/proactive-alerts' },
+        { id: 'team-management', label: 'Team Management', icon: Users, path: '/team-management' },
+        ...commonItems.slice(1),
+      ];
+    }
+
+    if (user?.role === 'caller') {
+      return [
+        ...commonItems.slice(0, 1),
+        { id: 'priority-calls', label: 'Priority Calls', icon: Phone, path: '/priority-calls' },
+        { id: 'escalations', label: 'Escalations', icon: AlertTriangle, path: '/escalations' },
+        ...commonItems.slice(1),
+      ];
+    }
+
+    if (user?.role === 'email_team') {
+      return [
+        ...commonItems.slice(0, 1),
+        { id: 'email-queue', label: 'Email Queue', icon: Mail, path: '/email-queue' },
+        { id: 'moderate-tickets', label: 'Moderate Tickets', icon: MessageCircle, path: '/moderate-tickets' },
+        { id: 'templates', label: 'Templates', icon: Settings, path: '/templates' },
+        ...commonItems.slice(1),
+      ];
+    }
+
+    return commonItems;
+  };
+
+  return (
+    <div className="hidden lg:flex lg:w-1/4 xl:w-1/5 relative overflow-hidden bg-white border-r border-gray-200">
+      {/* Navigation Content */}
+      <div className="relative z-10 flex flex-col h-full w-full">
+        {/* Logo/Brand */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">AI Support</h1>
+              <p className="text-xs text-gray-600 capitalize">{user?.role?.replace('_', ' ')} Portal</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 p-4">
+          <div className="space-y-2">
+            {getNavItems().map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <NavLink
+                  key={item.id}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${isActive
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`
+                  }
+                >
+                  <IconComponent className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* User Info */}
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center space-x-3 p-3 rounded-xl bg-gray-50">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-medium text-white">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+              <p className="text-xs text-gray-600 capitalize">{user?.role?.replace('_', ' ')}</p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="w-full mt-3 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Role-Based Route Component
+const RoleBasedRoute: React.FC<{
+  children: React.ReactNode;
+  allowedRoles: string[]
+}> = ({ children, allowedRoles }) => {
+  const { user } = useAuth();
+
+  if (!user || !allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AppContent: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [tickets, setTickets] = useState(mockTickets);
+
+  const handleSubmitTicket = (newTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const ticket: Ticket = {
+      ...newTicket,
+      id: (Date.now()).toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setTickets(prev => [ticket, ...prev]);
+
+    // Simulate real-time notification to teams
+    console.log('New ticket submitted:', ticket);
+
+    // Auto-route based on priority
+    if (ticket.priority === 'priority') {
+      console.log('Priority ticket routed to Call Team');
+    } else if (ticket.priority === 'moderate') {
+      console.log('Moderate ticket routed to Email Team');
+    } else {
+      console.log('Normal ticket routed to AI Chatbot');
+    }
+  };
+
+  // Customer Portal Layout
+  if (user?.role === 'customer') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-900">Customer Support Portal</h1>
+            <button
+              onClick={logout}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+        <Routes>
+          <Route path="/" element={<CustomerPortal onSubmitTicket={handleSubmitTicket} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    );
+  }
+
+  // Main App Layout for authenticated users
+  return (
+    <div className="flex h-screen">
+      {/* Left Side - Navigation */}
+      <NavigationSidebar />
+
+      {/* Right Side - Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header */}
+        <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">AI Support</h1>
+                <p className="text-sm text-gray-600 capitalize">{user?.role?.replace('_', ' ')} Portal</p>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="text-gray-600 hover:text-gray-900 p-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="p-6">
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardOverview />} />
+
+              {/* Admin Routes */}
+              <Route path="/analytics" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <EnhancedAnalytics />
+                </RoleBasedRoute>
+              } />
+              <Route path="/tickets" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <TicketList title="All Tickets" tickets={tickets} />
+                </RoleBasedRoute>
+              } />
+              <Route path="/calls" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <TicketList title="Call Management" tickets={tickets.filter(t => t.source === 'call')} />
+                </RoleBasedRoute>
+              } />
+              <Route path="/emails" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <TicketList title="Email Queue" tickets={tickets.filter(t => t.source === 'email')} />
+                </RoleBasedRoute>
+              } />
+              <Route path="/chatbot" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-900">AI Chatbot Interface</h2>
+                    <ChatInterface />
+                  </div>
+                </RoleBasedRoute>
+              } />
+              <Route path="/waste-analytics" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <WasteAnalytics />
+                </RoleBasedRoute>
+              } />
+              <Route path="/proactive-alerts" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <ProactiveAlerts />
+                </RoleBasedRoute>
+              } />
+              <Route path="/team-management" element={
+                <RoleBasedRoute allowedRoles={['admin']}>
+                  <TeamManagement />
+                </RoleBasedRoute>
+              } />
+
+              {/* Caller Routes */}
+              <Route path="/priority-calls" element={
+                <RoleBasedRoute allowedRoles={['caller']}>
+                  <TicketList title="Priority Calls" tickets={tickets.filter(t => t.priority === 'priority')} />
+                </RoleBasedRoute>
+              } />
+              <Route path="/escalations" element={
+                <RoleBasedRoute allowedRoles={['caller']}>
+                  <TicketList title="Escalations" tickets={tickets.filter(t => t.sentiment === 'frustrated' || t.sentiment === 'angry')} />
+                </RoleBasedRoute>
+              } />
+
+              {/* Email Team Routes */}
+              <Route path="/email-queue" element={
+                <RoleBasedRoute allowedRoles={['email_team']}>
+                  <TicketList title="Email Queue" tickets={tickets.filter(t => t.source === 'email')} />
+                </RoleBasedRoute>
+              } />
+              <Route path="/moderate-tickets" element={
+                <RoleBasedRoute allowedRoles={['email_team']}>
+                  <TicketList title="Moderate Tickets" tickets={tickets.filter(t => t.priority === 'moderate')} />
+                </RoleBasedRoute>
+              } />
+              <Route path="/templates" element={
+                <RoleBasedRoute allowedRoles={['email_team']}>
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-900">Email Templates</h2>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                      <p className="text-gray-600">Email template management coming soon...</p>
+                    </div>
+                  </div>
+                </RoleBasedRoute>
+              } />
+
+              {/* Common Routes */}
+              <Route path="/library" element={<TicketList title="Ticket Library" tickets={tickets} />} />
+              <Route path="/settings" element={<SettingsPage />} />
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <AppContent />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;
