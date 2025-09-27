@@ -217,11 +217,16 @@ const RoleBasedRoute: React.FC<{
 const AppContent: React.FC = () => {
   const { user, logout, isLoggingOut } = useAuth();
 
-  const handleSubmitTicket = async (newTicket: Ticket) => {
+  const handleSubmitTicket = async (newTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       // Save to Firestore first
       const ticketId = await TicketService.createTicket(newTicket);
-      const ticketWithId = { ...newTicket, id: ticketId };
+      const ticketWithId: Ticket = {
+        ...newTicket,
+        id: ticketId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
       // Simulate real-time notification to teams
       console.log('New ticket submitted:', ticketWithId);

@@ -3,11 +3,10 @@ import { Send, CheckCircle, Bot, User, ThumbsUp, ThumbsDown, Sparkles, FileText,
 import toast from 'react-hot-toast';
 import { Ticket, ChatMessage } from '../../types';
 import { openRouterService, ChatClassification, OpenRouterMessage } from '../../services/openRouterService';
-import { TicketService } from '../../services/ticketService';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface CustomerPortalProps {
-  onSubmitTicket: (ticket: Ticket) => void;
+  onSubmitTicket: (ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }) => {
@@ -299,18 +298,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onSubmitTicket }
         carbonFootprint: Math.random() * 0.5, // Simulated carbon footprint
       };
 
-      // Save ticket to Firestore
-      const ticketId = await TicketService.createTicket(newTicket);
-
-      // Create a complete ticket object with the generated ID for the parent component
-      const completeTicket: Ticket = {
-        ...newTicket,
-        id: ticketId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      onSubmitTicket(completeTicket);
+      // Pass ticket to parent component for creation
+      await onSubmitTicket(newTicket);
       setIsSubmitting(false);
       setSubmitted(true);
       toast.success('Ticket submitted successfully! Our team will get back to you soon.');
