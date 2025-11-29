@@ -6,13 +6,13 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyC-aFUvTSUzpSEq4hdrhRAza5pIG6Ltr7s",
-    authDomain: "smart-customer-automization.firebaseapp.com",
-    projectId: "smart-customer-automization",
-    storageBucket: "smart-customer-automization.firebasestorage.app",
-    messagingSenderId: "163269034381",
-    appId: "1:163269034381:web:f39256a781c4f3f513bdc4"
-};
+    apiKey: "AIzaSyCLOJncCsDPC8SZgfC5JG1U9epIcrCabrg",
+    authDomain: "voice-digest-vt.firebaseapp.com",
+    projectId: "voice-digest-vt",
+    storageBucket: "voice-digest-vt.firebasestorage.app",
+    messagingSenderId: "453620742933",
+    appId: "1:453620742933:web:e67e63eadc6e1ddf9d471c"
+  };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
